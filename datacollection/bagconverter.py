@@ -1,6 +1,6 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('traj_7_straight_hall.bag')
+bag=rosbag.Bag('traj.bag')
 ranges=[]
 poses=[]
 xs=[]
@@ -9,8 +9,8 @@ dim=0
 lastodom=[0,0,0]
 for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_scan']):
     if topic=='/wheel_odom':
-        lastodom[0]+=msg.x
-        lastodom[1]+=msg.y
+        lastodom[0]+=msg.x*np.cos(lastodom[2])
+        lastodom[1]+=msg.x*np.sin(lastodom[2])
         lastodom[2]+=msg.th
     elif topic=='/scan':
         ranges.append(msg.ranges)
@@ -19,13 +19,16 @@ for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_s
     elif topic=='/rectified_scan':
         xs.append(msg.xs)
         ys.append(msg.ys)
+ranges=ranges[:-1]
 bag.close()
 npranges=np.zeros((len(ranges),dim))
 npposes=np.array(poses)
-npxs=np.array(xs)
-npys=np.array(ys)
+npxs=np.zeros((len(ranges),dim))
+npys=np.zeros((len(ranges),dim))
 for i in range(len(ranges)):
     npranges[i,0:len(ranges[i])]=ranges[i]
+    npxs[i,0:len(xs[i])]=xs[i]
+    npys[i,0:len(ys[i])]=ys[i]
 np.save('ranges',npranges)
 np.save('poses',npposes)
 np.save('xs',npxs)

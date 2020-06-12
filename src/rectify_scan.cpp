@@ -10,7 +10,6 @@
 #define PI 3.14159265358979323846
 using namespace std;
 using namespace Eigen;
-const int SEAM_OFFSET=-8;
 struct Pose{
 	Pose(float x,float y,float th){
 		this->x=x;
@@ -46,25 +45,29 @@ public:
 		rectify(scan,xs,ys);
 		rectscan.xs=xs;
 		rectscan.ys=ys;
+		pub.publish(rectscan);
 		odomQ.clear();
 		odomQ.emplace_back(0,0,0);
-		pub.publish(rectscan);
 	}
 	void odomCB(const mapper::Odometry msg){
 		if(lastScan==nullptr)return;
 		if(msg.header.stamp<lastScan->header.stamp)return;
-		Pose prevO=odomQ[odomQ.size()-1];
-		odomQ.emplace_back(prevO.x+msg.x,prevO.y+msg.y,prevO.th+msg.th);
+		mapper::Odometry prevO=odomQ[odomQ.size()-1];
+		float RT=prevO.th;
+		float opt1=RT+msg.th;
+		float opt2=msg.x/6.0;
+		float opt3=msg.th/2.0;
+		float opt4=RT+opt3;
+		float dx=opt2*(cos(RT)+4.0*cos(opt4)+cos(opt1));
+		float dy=opt2*(sin(RT)+4.0*sin(opt4)+sin(opt1));
+		odomQ.emplace_back(prevO.x+dx,prevO.y+dy,opt1);
 	}
 	void rectify(const sensor_msgs::LaserScan::ConstPtr& scan,vector<float> &xs,
 			vector<float> &ys){
-		if(scan->ranges.size()!=720){
-			ROS_WARN("Size of scan is not 720 points as expected");
-		}
 		for(int i=0;i<scan->ranges.size();i++){
-			float th=((.5*i)*PI)/180.;
+			float th=scan->intensities[i];
 			float d=scan->ranges[i];
-			Pose t=interp(odomQ,mod(i+2*SEAM_OFFSET,720)/720.f);
+			Pose t=interp(odomQ,1-i/((float)scan->ranges.size()));
 			Rotation2D<float> R(t.th);
 			Vector2f original(d*cos(th),d*sin(th));
 			Vector2f trans(t.x,t.y);
@@ -76,27 +79,25 @@ public:
 private:
 	Pose interp(vector<Pose> &poses,float prog){
 		if(poses.size()<2)return Pose(0,0,0);
-		int index=ceil(poses.size()*(1-prog));
-		if(index>=poses.size())index=poses.size()-1;
-		if(index<1 || index>poses.size()-1){
+		if(prog==1)return poses[poses.size()-1];
+		int index=floor(prog*poses.size());
+		if(index<0 || index>poses.size()-1){
 			cout<<prog<<endl;
 			cout<<poses.size()<<endl;
 			throw runtime_error("index out of bounds");
 		}
-		float r=prog*poses.size()-floor(prog*poses.size());
-		if(r>1 || r<0){
-			throw runtime_error("bad r");
-		}
-		float x=poses[index].x*(1-r)+poses[index-1].x*r;
-		float y=poses[index].y*(1-r)+poses[index-1].y*r;
-		float th=poses[index].th*(1-r)+poses[index-1].th*r;
+		if(index==poses.size()-1)return poses[poses.size()-1]; 
+		float r=prog*poses.size()-index;
+		float x=poses[index].x*(1-r)+poses[index+1].x*r;
+		float y=poses[index].y*(1-r)+poses[index+1].y*r;
+		float th=poses[index].th*(1-r)+poses[index+1].th*r;
 		return Pose(x,y,th);
 	}
 	Pose imdumb(Pose p1,Pose p2,float r){
 		return Pose(p1.x*(1-r)+p2.x*r,p1.y*(1-r)+p2.y*r,p1.th*(1-r)+p2.th*r);
 	}
 	ros::Publisher pub;
-	vector<Pose> odomQ;
+	vector<mapper::Odometry> odomQ;
 	sensor_msgs::LaserScan::ConstPtr lastScan=nullptr;
 };
 

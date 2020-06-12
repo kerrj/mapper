@@ -6,9 +6,8 @@ import numpy as np
 Publishes intermediate differentials in odometry based on wheel movement.
 Odometry is always relative to the previous odometry update (dropping updates
 will cause loss of information). Odometry is done this way to better allow for
-integration with slam, since relative poses are needed.
-Summing all messages on this topic will result in the original final odom
-estimate due to wheel integration.
+integration with slam, since relative poses are needed. Integrating this like a normal
+pose will result in a final odometry estimate. Can start at 0 at any time.
 '''
 WHEEL_RAD=.04
 WHEEL_SEP=.1978
@@ -22,23 +21,28 @@ def enc_cb(encMsg):
     r_d=encMsg.rawRightDelta*WHEEL_RAD
     vd=(l_d+r_d)/2.0
     dth=(r_d-l_d)/WHEEL_SEP
-    RT=odom.th
-    opt1=RT+dth
-    opt2=vd/6.0
-    opt3=dth/2.0
-    opt4=RT+opt3
     omsg=Odometry()
     omsg.header.stamp=encMsg.header.stamp
-    omsg.header.frame_id="origin"
-    dx=(opt2)*(np.cos(RT)+4.0*np.cos(opt4)+np.cos(opt1))
-    dy=(opt2)*(np.sin(RT)+4.0*np.sin(opt4)+np.sin(opt1))
-    th=opt1
-    omsg.th=th-odom.th
-    omsg.x=dx
-    omsg.y=dy
-    odom.x+=dx
-    odom.y+=dy
-    odom.th=th
+    omsg.x=vd
+    omsg.y=0
+    omsg.th=dth
+    #RT=odom.th
+    #opt1=RT+dth
+    #opt2=vd/6.0
+    #opt3=dth/2.0
+    #opt4=RT+opt3
+    #omsg=Odometry()
+    #omsg.header.stamp=encMsg.header.stamp
+    omsg.header.frame_id="wheel_base"
+    #dx=(opt2)*(np.cos(RT)+4.0*np.cos(opt4)+np.cos(opt1))
+    #dy=(opt2)*(np.sin(RT)+4.0*np.sin(opt4)+np.sin(opt1))
+    #th=opt1
+    #omsg.th=th-odom.th
+    #omsg.x=dx
+    #omsg.y=dy
+    #odom.x+=dx
+    #odom.y+=dy
+    #odom.th=th
     pub.publish(omsg)
-rospy.Subscriber('encoders',EncoderReading,enc_cb,queue_size=10)
+rospy.Subscriber('encoders',EncoderReading,enc_cb,queue_size=50)
 rospy.spin()

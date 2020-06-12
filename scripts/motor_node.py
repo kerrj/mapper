@@ -16,7 +16,7 @@ COUNTS_PER_RAD=COUNTS_PER_REV/(2*pi)
 ADR=0x80
 MAX_SPEED=12#units in radians
 TIMEOUT=1
-RATE=75
+RATE=50
 rospy.init_node("motor_node")
 rc=Roboclaw('/dev/ttyACM0',115200)
 rc.Open()
@@ -44,7 +44,7 @@ def shutdown():
         rospy.logerr("Error while sending 0 vel on shutdown")
 rospy.on_shutdown(shutdown)
 velsub=rospy.Subscriber('cmd_vel',MotorCommand,vel_cb,queue_size=1)
-statepub=rospy.Publisher('encoders',EncoderReading,queue_size=10)
+statepub=rospy.Publisher('encoders',EncoderReading,queue_size=50)
 rate=rospy.Rate(RATE)
 
 m1last=rc.ReadEncM1(ADR)[1]
