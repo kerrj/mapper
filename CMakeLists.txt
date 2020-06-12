@@ -8,13 +8,16 @@ project(mapper)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
   geometry_msgs
   message_generation
-  message_runtime
   sensor_msgs
   std_msgs
   std_srvs
+  cmake_modules
 )
+find_package(Eigen3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -50,12 +53,14 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
+ add_message_files(
+   FILES
+   EncoderReading.msg
+   MotorCommand.msg
+   BaseCommand.msg
+   RectifiedScan.msg
+   Odometry.msg
+ )
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
@@ -71,10 +76,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   sensor_msgs#   std_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   geometry_msgs   
+   sensor_msgs  
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,8 +115,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mapper
-#  CATKIN_DEPENDS geometry_msgs message_generation message_runtime sensor_msgs std_msgs std_srvs
-#  DEPENDS system_lib
+CATKIN_DEPENDS geometry_msgs message_runtime sensor_msgs std_msgs std_srvs rospy roscpp
+#DEPENDS Eigen3
 )
 
 ###########
@@ -121,6 +128,8 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  SYSTEM
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -136,22 +145,22 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/mapper_node.cpp)
+add_executable(${PROJECT_NAME}_node src/rectify_scan.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+ set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME rectify_scan PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(${PROJECT_NAME}_node
+   ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##

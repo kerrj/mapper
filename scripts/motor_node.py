@@ -5,7 +5,7 @@ command units are in radians and rad/s, conversion to encoders takes place in th
 '''
 from roboclaw_driver.roboclaw_3 import Roboclaw
 import rospy
-from segway.msg import MotorCommand,EncoderReading
+from mapper.msg import MotorCommand,EncoderReading
 from threading import Lock
 from math import pi
 from util import * 
@@ -14,9 +14,9 @@ from math import copysign
 COUNTS_PER_REV=2248.86 
 COUNTS_PER_RAD=COUNTS_PER_REV/(2*pi)
 ADR=0x80
-MAX_SPEED=20#units in radians
-TIMEOUT=.25
-RATE=100
+MAX_SPEED=12#units in radians
+TIMEOUT=1
+RATE=75
 rospy.init_node("motor_node")
 rc=Roboclaw('/dev/ttyACM0',115200)
 rc.Open()
@@ -32,10 +32,9 @@ def vel_cb(msg):
     lastCommandTime=msg.header.stamp
     if rospy.get_rostime() - lastCommandTime > rospy.Duration(TIMEOUT):
         rospy.logwarn("Ignoring stale cmd_vel message")
-        #return
+        return
     rcLock.acquire()
-    print(m1vel,m2vel)
-    rc.SpeedM1M2(ADR,m1vel,m2vel)
+    rc.SpeedM1M2(ADR,-m1vel,-m2vel)#use negative to correct direction
     rcLock.release()
 def shutdown():
     try:
@@ -60,11 +59,12 @@ while not rospy.is_shutdown():
     #print(cur-last)
     #last=cur
     rcLock.acquire()
-    #if rospy.get_rostime() - lastCommandTime > rospy.Duration(TIMEOUT):
-    #    rc.ForwardM1(ADR,0)
-    #    rc.ForwardM2(ADR,0)
-    m1enc=rc.ReadEncM1(ADR)[1]
-    m2enc=rc.ReadEncM2(ADR)[1]
+    if rospy.get_rostime() - lastCommandTime > rospy.Duration(TIMEOUT):
+        rc.ForwardM1(ADR,0)
+        rc.ForwardM2(ADR,0)
+    #use negative to correct direction
+    m1enc=-rc.ReadEncM1(ADR)[1]
+    m2enc=-rc.ReadEncM2(ADR)[1]
     rcLock.release()
     m1clicks=m1enc-m1last
     m2clicks=m2enc-m2last
@@ -82,8 +82,8 @@ while not rospy.is_shutdown():
     #CHANGE M1/M2 CORRESPONDENCE BELOW ON ALL 4 LINES
     e.leftAngle=m1pos
     e.leftVel=m1AvgSpeed.value()
-    e.rawLeftVel=RATE*m1delta
+    e.rawLeftDelta=m1delta
     e.rightAngle=m2pos
     e.rightVel=m2AvgSpeed.value()
-    e.rawRightVel=RATE*m2delta
+    e.rawRightDelta=m2delta
     statepub.publish(e)
