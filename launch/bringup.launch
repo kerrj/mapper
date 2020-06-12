@@ -1,0 +1,6 @@
+<launch>
+<node name="motor_node" pkg="mapper" type="motor_node.py" output="screen" required="true" launch-prefix="nice -n -20"/>
+<node name="rectify_node" pkg="mapper" type="rectify_scan" output="screen" required="true" launch-prefix="nice -n -20"/>
+<node name="wheel_odom" pkg="mapper" type="wheel_odom.py" output="screen" required="true" launch-prefix="nice -n -20"/>
+<node name="base_controller" pkg="mapper" type="base_controller.py" output="screen" required="true" launch-prefix="nice -n -20"/>
+</launch>

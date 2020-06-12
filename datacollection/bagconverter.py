@@ -1,6 +1,6 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('rectified_traj_5.bag')
+bag=rosbag.Bag('traj_7_straight_hall.bag')
 ranges=[]
 poses=[]
 xs=[]

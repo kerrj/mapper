@@ -6,7 +6,7 @@ from geometry_msgs.msg import Point
 rospy.init_node("teleop")
 cmd_pub=rospy.Publisher("target_vel",BaseCommand,queue_size=1)
 svel=.35
-turnvel=2
+turnvel=1.5
 print("Type command (wasd for direction). press q to exit")
 rate=rospy.Rate(10)
 while not rospy.is_shutdown():
