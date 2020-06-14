@@ -1,18 +1,25 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('traj.bag')
+bag=rosbag.Bag('kitchen.bag')
 ranges=[]
 poses=[]
 xs=[]
 ys=[]
 dim=0
+i=0
 lastodom=[0,0,0]
+lastotime=0
 for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_scan']):
     if topic=='/wheel_odom':
+        dt=msg.header.stamp.to_time()-lastotime
+        if dt>.3:
+            print("bad odom",dt,i)
+        lastotime=msg.header.stamp.to_time()
         lastodom[0]+=msg.x*np.cos(lastodom[2])
         lastodom[1]+=msg.x*np.sin(lastodom[2])
         lastodom[2]+=msg.th
     elif topic=='/scan':
+        i+=1
         ranges.append(msg.ranges)
         poses.append(lastodom.copy())
         dim=max(dim,len(msg.ranges))

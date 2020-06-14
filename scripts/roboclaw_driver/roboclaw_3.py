@@ -1074,5 +1074,5 @@ class Roboclaw:
 		return False	
 		
 	def Open(self):
-	        self._port = serial.Serial(port=self.comport, baudrate=self.rate, timeout=1, interCharTimeout=self.timeout)
+	        self._port = serial.Serial(port=self.comport, baudrate=self.rate, timeout=.01, interCharTimeout=self.timeout)
 

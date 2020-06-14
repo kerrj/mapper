@@ -28,8 +28,7 @@ class Rectifier{
 public:
 	Rectifier(ros::Publisher pub){
 		this->pub=pub;
-		Pose p(0,0,0);
-		this->odomQ={p};
+		poseFinger=0;
 	}
 	void scanCB(const sensor_msgs::LaserScan::ConstPtr& scan){
 		if(lastScan==nullptr){
@@ -47,27 +46,22 @@ public:
 		rectscan.ys=ys;
 		pub.publish(rectscan);
 		odomQ.clear();
-		odomQ.emplace_back(0,0,0);
+		poseFinger=0;
 	}
 	void odomCB(const mapper::Odometry msg){
-		if(lastScan==nullptr)return;
-		if(msg.header.stamp<lastScan->header.stamp)return;
-		mapper::Odometry prevO=odomQ[odomQ.size()-1];
-		float RT=prevO.th;
-		float opt1=RT+msg.th;
-		float opt2=msg.x/6.0;
-		float opt3=msg.th/2.0;
-		float opt4=RT+opt3;
-		float dx=opt2*(cos(RT)+4.0*cos(opt4)+cos(opt1));
-		float dy=opt2*(sin(RT)+4.0*sin(opt4)+sin(opt1));
-		odomQ.emplace_back(prevO.x+dx,prevO.y+dy,opt1);
+		odomQ.push_back(msg);
+		//only keeps the last .4 seconds of updates after the finger
+		while(poseFinger<odomQ.size()-1 && odomQ[poseFinger].header.stamp<odomQ[odomQ.size()-1].header.stamp-ros::Duration(.4)){
+			poseFinger++;
+		}
 	}
 	void rectify(const sensor_msgs::LaserScan::ConstPtr& scan,vector<float> &xs,
 			vector<float> &ys){
+		vector<Pose> poses=integrateOdom(scan);
 		for(int i=0;i<scan->ranges.size();i++){
 			float th=scan->intensities[i];
 			float d=scan->ranges[i];
-			Pose t=interp(odomQ,1-i/((float)scan->ranges.size()));
+			Pose t=interp(poses,1-i/((float)scan->ranges.size()));
 			Rotation2D<float> R(t.th);
 			Vector2f original(d*cos(th),d*sin(th));
 			Vector2f trans(t.x,t.y);
@@ -77,6 +71,34 @@ public:
 		}	
 	}
 private:
+	vector<Pose> integrateOdom(const sensor_msgs::LaserScan::ConstPtr& scan){
+		ros::Time scanStart=scan->header.stamp;
+		/*cout<<"start integrate"<<endl;
+		cout<<"scanstart "<<scanStart<<endl;
+		cout<<"odomq size "<<odomQ.size()<<endl;
+		cout<<"figner pos "<<poseFinger<<endl;*/
+		int i=poseFinger;
+		for( ;i<odomQ.size();i++){
+			if(odomQ[i].header.stamp>scanStart){
+				break;
+			}
+		}
+		//cout<<"posefinger after increment "<<i<<endl;
+		vector<Pose> poses={Pose(0,0,0)};
+		for(;i<odomQ.size();i++){
+			Pose prevP=poses[poses.size()-1];
+			mapper::Odometry msg=odomQ[i];
+			float RT=prevP.th;
+			float opt1=RT+msg.th;
+			float opt2=msg.x/6.0;
+			float opt3=msg.th/2.0;
+			float opt4=RT+opt3;
+			float dx=opt2*(cos(RT)+4.0*cos(opt4)+cos(opt1));
+			float dy=opt2*(sin(RT)+4.0*sin(opt4)+sin(opt1));
+			poses.emplace_back(prevP.x+dx,prevP.y+dy,opt1);
+		}
+		return poses;
+	}
 	Pose interp(vector<Pose> &poses,float prog){
 		if(poses.size()<2)return Pose(0,0,0);
 		if(prog==1)return poses[poses.size()-1];
@@ -98,6 +120,7 @@ private:
 	}
 	ros::Publisher pub;
 	vector<mapper::Odometry> odomQ;
+	int poseFinger=0;
 	sensor_msgs::LaserScan::ConstPtr lastScan=nullptr;
 };
 
@@ -107,7 +130,7 @@ int main(int argc, char **argv){
 	ros::Publisher pub=n.advertise<mapper::RectifiedScan>("/rectified_scan",10);
 	Rectifier rect(pub);
 	ros::Subscriber s1 = n.subscribe("/scan",10,&Rectifier::scanCB,&rect);
-	ros::Subscriber s2 = n.subscribe("/wheel_odom",20,&Rectifier::odomCB,&rect);
+	ros::Subscriber s2 = n.subscribe("/wheel_odom",50,&Rectifier::odomCB,&rect);
 	ROS_INFO("Starting rectify node");
         ros::spin();
 	return 0;
