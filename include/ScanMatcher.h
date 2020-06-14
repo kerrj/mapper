@@ -3,15 +3,15 @@
 #include <vector>
 #include <iostream>
 #include "ProbMap.h"
+#include "math.h"
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/cubic_interpolation.h"
+#include "mapper/RectifiedScan.h"
+#include "mapper/Odometry.h"
 #include "glog/logging.h"
 using namespace std;
 using namespace ceres;
-class ScanMatcher{
-
-};
 class LaserPointCost{
 public:
 	LaserPointCost(ProbMap pm,float px,float py){
@@ -38,5 +38,16 @@ private:
 	shared_ptr<BiCubicInterpolator<ProbMap> > interp;
 	ProbMap map;
 	double px,py;
+};
+class ScanMatcher{
+public:
+	ScanMatcher();
+	void resetMap();
+	void addScan(const mapper::RectifiedScan::ConstPtr& scan,double *rx,double *ry,double *rth);
+	void addOdom(const mapper::Odometry::ConstPtr& odom);
+private:
+	ProbMap map;
+	mapper::Odometry rPose;//integrates odometry/saves last estimate
+	bool fresh=true;
 };
 #endif

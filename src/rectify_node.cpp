@@ -115,9 +115,6 @@ private:
 		float th=poses[index].th*(1-r)+poses[index+1].th*r;
 		return Pose(x,y,th);
 	}
-	Pose imdumb(Pose p1,Pose p2,float r){
-		return Pose(p1.x*(1-r)+p2.x*r,p1.y*(1-r)+p2.y*r,p1.th*(1-r)+p2.th*r);
-	}
 	ros::Publisher pub;
 	vector<mapper::Odometry> odomQ;
 	int poseFinger=0;

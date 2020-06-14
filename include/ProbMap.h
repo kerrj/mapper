@@ -19,17 +19,18 @@ public:
 	void addObservation(double rx,double ry,double rth,double px,double py);
 	template<typename T>
 	void map2Grid(T mx,T my,T* gx,T* gy)const{
-		*gx=mx+T(map_x);
-		*gy=my+T(map_y);
+		*gx=(mx+T(map_x))*CELL_RES;
+		*gy=(my+T(map_y))*CELL_RES;
 	}
 	ProbMap& operator=(const ProbMap& other);
-private:
+	int numX()const;
+	int numY()const;
 	double getProb(prob_t p)const;
 	prob_t getProbT(double p)const;
 	double getProb(int x,int y) const;
+private:
 	void updateProb(int x,int y,bool free);
-	int numX()const;
-	int numY()const;
+	void fillBetween(int x0,int y0,int x1,int y1);
 	//adds num cells in every direction (new dims are (dx+2*num,dy+2*num))
 	void resize(int num);
 	double odds(double p);
@@ -37,10 +38,11 @@ private:
 	double clamp(double val,double minval,double maxval)const;
 	shared_ptr<vector<vector<prob_t> > > grid;
 	double map_x,map_y;
-	const prob_t NO_INFO=50;
-	const double CELL_SIZE=.04;
+	const prob_t NO_INFO=10;
+	const double CELL_SIZE=.1;
+	const double CELL_RES=1/CELL_SIZE;
 	const double DFLT_SIZE=10;
-	const double P_HIT=.8;
-	const double P_MISS=.2;
+	const double P_HIT=.7;
+	const double P_MISS=.3;
 };
 #endif

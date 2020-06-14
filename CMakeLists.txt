@@ -147,8 +147,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(rectify_scan src/rectify_scan.cpp)
-add_executable(localmatch src/LocalScanMatch.cpp)
+add_executable(rectify_scan src/rectify_node.cpp)
+add_executable(local_matching src/matching_node.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -158,12 +158,12 @@ add_executable(localmatch src/LocalScanMatch.cpp)
 ## same as for the library above
 
 add_dependencies(rectify_scan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(localmatch ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(local_matching ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(rectify_scan
    ${catkin_LIBRARIES}
  )
-target_link_libraries(localmatch
+target_link_libraries(local_matching
    ${PROJECT_NAME}
    ${catkin_LIBRARIES}
    ${CERES_LIBRARIES}

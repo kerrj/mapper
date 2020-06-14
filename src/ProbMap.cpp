@@ -43,6 +43,7 @@ prob_t ProbMap::getProbT(double prob)const{
 }
 void ProbMap::resize(int num){
 	if(num==0)return;
+	cout<<"resizing "<<num<<endl;
 	int oldx=numX();
 	int oldy=numY();
 	shared_ptr<grid_t> newGrid=make_shared<grid_t>(2*num+grid->size(),vector<prob_t>(num,NO_INFO));
@@ -76,8 +77,9 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	int laserGridX=round(gx);
 	int laserGridY=round(gy);
-	int robotGridX=round(rx);
-	int robotGridY=round(ry);
+	map2Grid(rx,ry,&gx,&gy);
+	int robotGridX=round(gx);
+	int robotGridY=round(gy);
 	//decide if we need to resize the map if they're out of bounds
 	int pad=0;
 	//take care of less than 0
@@ -90,12 +92,21 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,laserGridY-numY());
 	pad=max(pad,robotGridX-numX());
 	pad=max(pad,robotGridY-numY());
-	resize(pad);
+	resize(pad*10);
+	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
+	laserGridX=round(gx);
+	laserGridY=round(gy);
+	map2Grid(rx,ry,&gx,&gy);
+	robotGridX=round(gx);
+	robotGridY=round(gy);
 	//register the endpoints of the laser
 	updateProb(laserGridX,laserGridY,false);
 	updateProb(robotGridX,robotGridY,true);
 	//call bresenham alg to paint between the endpoints with free space
-	//TODO implement bresenham
+	fillBetween(robotGridX,robotGridY,laserGridX,laserGridY);
+}
+void ProbMap::fillBetween(int x0,int y0,int x1,int y1){
+	//TODO implement
 }
 double ProbMap::odds(double p){
 	return p/(1-p);
@@ -108,14 +119,15 @@ double ProbMap::clamp(double val,double minval,double maxval)const{
 }
 void ProbMap::updateProb(int x,int y,bool free){
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		cout<<x<<" "<<y<<endl;
 		throw runtime_error("out of bounds access in updateProb");
 	}
 	double prior=getProb(x,y);
 	double post;
 	if(free){
-		post=clamp(oddsinv(odds(prior)*odds(P_MISS)),0.,1.);
+		post=clamp(oddsinv(odds(prior)*odds(P_MISS)),0.05,.95);
 	}else{
-		post=clamp(oddsinv(odds(prior)*odds(P_HIT)),0.,1.);
+		post=clamp(oddsinv(odds(prior)*odds(P_HIT)),0.05,.95);
 	}
 	(*grid)[x][y]=getProbT(post);
 }
