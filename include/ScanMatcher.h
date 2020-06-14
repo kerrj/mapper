@@ -26,7 +26,11 @@ public:
         	const T point[]={T(px),T(py),T(0)};
         	T result[3];
         	AngleAxisRotatePoint(axis,point,result);
-        	interp->Evaluate(result[0]+*x,result[1]+*y,residual);
+		T mx=result[0]+*x;
+		T my=result[1]+*y;
+		T gx,gy;
+		map.map2Grid(mx,my,&gx,&gy);
+        	interp->Evaluate(gx,gy,residual);
         	residual[0]=T(1.1)-residual[0];
         	return true;
 	}

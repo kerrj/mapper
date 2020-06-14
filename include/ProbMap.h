@@ -2,21 +2,45 @@
 #define PROBMAP_H
 #include <vector>
 #include <iostream>
-typedef uint8_t prob_t;
+#include <memory>
+#include "Eigen/Geometry"
+#include "Eigen/Dense"
+#include <math.h>
 using namespace std;
+typedef uint8_t prob_t;
+typedef vector<vector<prob_t> > grid_t;
 class ProbMap{
 public:
 	ProbMap();
 	ProbMap(const ProbMap &old);
 	enum{DATA_DIMENSION=1};
-	int rows()const;
-	int cols()const;
-	void GetValue(int row,int col,double* f)const;
+	void GetValue(int x,int y,double* f)const;
+	//r{x,y,th} is the pose in the map frame, p{x,y} is the point in the robot frame
+	void addObservation(double rx,double ry,double rth,double px,double py);
+	template<typename T>
+	void map2Grid(T mx,T my,T* gx,T* gy)const{
+		*gx=mx+T(map_x);
+		*gy=my+T(map_y);
+	}
 	ProbMap& operator=(const ProbMap& other);
 private:
 	double getProb(prob_t p)const;
-	double getProb(int row,int col) const;
-	vector<vector<prob_t> > grid;
+	prob_t getProbT(double p)const;
+	double getProb(int x,int y) const;
+	void updateProb(int x,int y,bool free);
+	int numX()const;
+	int numY()const;
+	//adds num cells in every direction (new dims are (dx+2*num,dy+2*num))
+	void resize(int num);
+	double odds(double p);
+	double oddsinv(double p);
+	double clamp(double val,double minval,double maxval)const;
+	shared_ptr<vector<vector<prob_t> > > grid;
+	double map_x,map_y;
 	const prob_t NO_INFO=50;
+	const double CELL_SIZE=.04;
+	const double DFLT_SIZE=10;
+	const double P_HIT=.8;
+	const double P_MISS=.2;
 };
 #endif
