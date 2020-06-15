@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include "Eigen/Geometry"
+#include "mapper/ProbMap.h"
 #include "Eigen/Dense"
 #include <math.h>
 using namespace std;
@@ -17,6 +18,8 @@ public:
 	void GetValue(int x,int y,double* f)const;
 	//r{x,y,th} is the pose in the map frame, p{x,y} is the point in the robot frame
 	void addObservation(double rx,double ry,double rth,double px,double py);
+	void fromRosMsg(const mapper::ProbMap::ConstPtr &msg);
+	mapper::ProbMap toRosMsg()const;
 	template<typename T>
 	void map2Grid(T mx,T my,T* gx,T* gy)const{
 		*gx=(mx+T(map_x))*CELL_RES;
@@ -40,9 +43,10 @@ private:
 	shared_ptr<vector<vector<prob_t> > > grid;
 	double map_x,map_y;
 	const prob_t NO_INFO=50;
-	const double CELL_SIZE=.04;
+	const double CELL_SIZE=.03;
 	const double CELL_RES=1/CELL_SIZE;
 	const double DFLT_SIZE=10;
+	const double MIN_PAD=2.;
 	const double P_HIT=.7;
 	const double P_MISS=.3;
 };

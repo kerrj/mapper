@@ -1,15 +1,16 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('kitchen.bag')
+bag=rosbag.Bag('mapnocauchy.bag')
 ranges=[]
 poses=[]
 xs=[]
 ys=[]
+mapmsg=None
 dim=0
 i=0
 lastodom=[0,0,0]
 lastotime=0
-for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_scan']):
+for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_scan','/map']):
     if topic=='/wheel_odom':
         dt=msg.header.stamp.to_time()-lastotime
         if dt>.3:
@@ -26,6 +27,9 @@ for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_s
     elif topic=='/rectified_scan':
         xs.append(msg.xs)
         ys.append(msg.ys)
+    elif topic=="/map":
+        mapmsg=msg
+npmap=np.reshape(np.array(list(mapmsg.data)),(mapmsg.numX,mapmsg.numY))
 ranges=ranges[:-1]
 bag.close()
 npranges=np.zeros((len(ranges),dim))
@@ -40,4 +44,5 @@ np.save('ranges',npranges)
 np.save('poses',npposes)
 np.save('xs',npxs)
 np.save('ys',npys)
-print("Saved output, dims: ",npranges.shape,npposes.shape,npxs.shape)
+np.save('map',npmap)
+print("Saved output, dims: ",npranges.shape,npposes.shape,npxs.shape,npmap.shape)

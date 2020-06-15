@@ -49,9 +49,12 @@ public:
 	void addScan(const mapper::RectifiedScan::ConstPtr& scan,double *rx,double *ry,double *rth);
 	void addOdom(const mapper::Odometry::ConstPtr& odom);
 	void printMap();
+	ProbMap getProbMap();
 private:
 	ProbMap map;
+	bool goodMeasurement(double x,double y);
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
 	bool fresh=true;
+	double MAX_RANGE=5.;//limit range we pay attention to measurements
 };
 #endif

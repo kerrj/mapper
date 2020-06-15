@@ -20,6 +20,12 @@ void ScanMatcher::addOdom(const mapper::Odometry::ConstPtr& odom){
 	rPose.y+=dy;
 	rPose.th=opt1;
 }
+bool ScanMatcher::goodMeasurement(double x,double y){
+	if(isnan(x) || isinf(x))return false;
+	double h=hypot(x,y);
+	if(h<.15 || h>MAX_RANGE)return false;
+	return true;
+}
 void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx,double* ry,double* rth){
 	double p[]={rPose.x,rPose.y,rPose.th};
 	if(!fresh){
@@ -29,22 +35,21 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx
 		vector<double> xs;
 		vector<double> ys;
 		for(int i=0;i<scan->xs.size();i++){
-			if(isnan(scan->xs[i]) || isinf(scan->xs[i]))continue;
-			if(hypot(scan->xs[i],scan->ys[i])<.15)continue;
+			if(!goodMeasurement(scan->xs[i],scan->ys[i]))continue;
 			xs.push_back(scan->xs[i]);
 			ys.push_back(scan->ys[i]);
 		}
+		cout<<"??? "<<xs.size()<<endl;;
 		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCost,DYNAMIC,3>(new LaserScanCost(&map,&xs,&ys),xs.size());
 		problem.AddResidualBlock(cost_fun,NULL,p);
 		Solver::Options options;
-		//options.minimizer_type=LINE_SEARCH;
 		options.num_threads=4;
 		options.linear_solver_type=DENSE_QR;
 		options.use_nonmonotonic_steps=true;
-		options.minimizer_progress_to_stdout=true;
+		options.minimizer_progress_to_stdout=false;
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
-		std::cout<<summary.FullReport()<<endl;
+		std::cout<<summary.BriefReport()<<endl;
 		*rx=p[0];
 		*ry=p[1];
 		*rth=p[2];
@@ -53,11 +58,13 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx
 	fresh=false;
 	//add all the observations using the fine tuned pose
 	for(int i=0;i<scan->xs.size();i++){
-		if(isnan(scan->xs[i]) || isinf(scan->xs[i]))continue;
-		if(hypot(scan->xs[i],scan->ys[i])<.15)continue;
+		if(!goodMeasurement(scan->xs[i],scan->ys[i]))continue;
 		map.addObservation(p[0],p[1],p[2],scan->xs[i],scan->ys[i]);
 	}
 }
 void ScanMatcher::printMap(){
 	map.printMap();
+}
+ProbMap ScanMatcher::getProbMap(){
+	return map;
 }

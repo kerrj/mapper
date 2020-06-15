@@ -43,7 +43,7 @@ prob_t ProbMap::getProbT(double prob)const{
 }
 void ProbMap::resize(int num){
 	if(num==0)return;
-	cout<<"resizing "<<num<<endl;
+	num=max((int)(MIN_PAD/CELL_SIZE),num);
 	int oldx=numX();
 	int oldy=numY();
 	shared_ptr<grid_t> newGrid=make_shared<grid_t>(2*num+grid->size(),vector<prob_t>(num,NO_INFO));
@@ -92,7 +92,7 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,laserGridY-numY()+1);
 	pad=max(pad,robotGridX-numX()+1);
 	pad=max(pad,robotGridY-numY()+1);
-	resize(pad);
+	resize(pad*10);
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	laserGridX=round(gx);
 	laserGridY=round(gy);
@@ -105,8 +105,89 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	//call bresenham alg to paint between the endpoints with free space
 	fillBetween(robotGridX,robotGridY,laserGridX,laserGridY);
 }
-void ProbMap::fillBetween(int x0,int y0,int x1,int y1){
-	//TODO implement
+void ProbMap::fillBetween(int x1,int y1,int x2,int y2)
+{
+ int x,y,dx,dy,dx1,dy1,px,py,xe,ye,i;
+ dx=x2-x1;
+ dy=y2-y1;
+ dx1=abs(dx);
+ dy1=abs(dy);
+ px=2*dy1-dx1;
+ py=2*dx1-dy1;
+ if(dy1<=dx1)
+ {
+  if(dx>=0)
+  {
+   x=x1;
+   y=y1;
+   xe=x2;
+  }
+  else
+  {
+   x=x2;
+   y=y2;
+   xe=x1;
+  }
+  for(i=0;x<xe;i++)
+  {
+   x=x+1;
+   if(px<0)
+   {
+    px=px+2*dy1;
+   }
+   else
+   {
+    if((dx<0 && dy<0) || (dx>0 && dy>0))
+    {
+     y=y+1;
+    }
+    else
+    {
+     y=y-1;
+    }
+    px=px+2*(dy1-dx1);
+   }
+   if(x==x2 && y==y2)break;
+   updateProb(x,y,true);
+  }
+ }
+ else
+ {
+  if(dy>=0)
+  {
+   x=x1;
+   y=y1;
+   ye=y2;
+  }
+  else
+  {
+   x=x2;
+   y=y2;
+   ye=y1;
+  }
+  for(i=0;y<ye;i++)
+  {
+   y=y+1;
+   if(py<=0)
+   {
+    py=py+2*dx1;
+   }
+   else
+   {
+    if((dx<0 && dy<0) || (dx>0 && dy>0))
+    {
+     x=x+1;
+    }
+    else
+    {
+     x=x-1;
+    }
+    py=py+2*(dx1-dy1);
+   }
+   if(x==x2 && y==y2)break;
+   updateProb(x,y,true);
+  }
+ }
 }
 double ProbMap::odds(double p){
 	return p/(1-p);
@@ -152,4 +233,16 @@ void ProbMap::printMap(){
 		cout<<endl;
 	}
 
+}
+mapper::ProbMap ProbMap::toRosMsg()const{
+	mapper::ProbMap msg;
+	msg.header.stamp=ros::Time::now();
+	msg.numX=numX();
+	msg.numY=numY();
+	vector<uint8_t> data;
+	for(int i=0;i<numX();i++){
+		data.insert(data.end(),(*grid)[i].begin(),(*grid)[i].end());
+	}
+	msg.data=data;
+	return msg;
 }

@@ -58,6 +58,7 @@ find_package(Ceres REQUIRED)
    FILES
    EncoderReading.msg
    MotorCommand.msg
+   ProbMap.msg
    BaseCommand.msg
    RectifiedScan.msg
    Odometry.msg
