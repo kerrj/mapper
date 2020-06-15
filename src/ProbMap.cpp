@@ -88,11 +88,11 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,0-robotGridX);
 	pad=max(pad,0-robotGridY);
 	//and more than size of x,y
-	pad=max(pad,laserGridX-numX());
-	pad=max(pad,laserGridY-numY());
-	pad=max(pad,robotGridX-numX());
-	pad=max(pad,robotGridY-numY());
-	resize(pad*10);
+	pad=max(pad,laserGridX-numX()+1);
+	pad=max(pad,laserGridY-numY()+1);
+	pad=max(pad,robotGridX-numX()+1);
+	pad=max(pad,robotGridY-numY()+1);
+	resize(pad);
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	laserGridX=round(gx);
 	laserGridY=round(gy);
@@ -130,4 +130,26 @@ void ProbMap::updateProb(int x,int y,bool free){
 		post=clamp(oddsinv(odds(prior)*odds(P_HIT)),0.05,.95);
 	}
 	(*grid)[x][y]=getProbT(post);
+}
+void ProbMap::printMap(){
+	double gx,gy;
+	map2Grid(0.,0.,&gx,&gy);
+	int gridx=round(gx);
+	int gridy=round(gy);
+	for(int i=0;i<numX();i++){
+		for(int j=0;j<numY();j++){
+			if(i==gridx && j==gridy){
+				cout<<"O";
+				continue;
+			}
+			double prob=getProb(i,j);
+			if(prob>.5){
+				cout<<"X";
+			}else{
+				cout<<" ";
+			}
+		}
+		cout<<endl;
+	}
+
 }

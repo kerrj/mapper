@@ -13,6 +13,7 @@ ScanMatcher matcher;
 void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	double x,y,th;
 	matcher.addScan(scan,&x,&y,&th);
+	//matcher.printMap();
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	matcher.addOdom(odom);

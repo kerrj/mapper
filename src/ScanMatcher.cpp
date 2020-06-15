@@ -21,43 +21,43 @@ void ScanMatcher::addOdom(const mapper::Odometry::ConstPtr& odom){
 	rPose.th=opt1;
 }
 void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx,double* ry,double* rth){
-	double x=rPose.x;
-	double y=rPose.y;
-	double th=rPose.th;
+	double p[]={rPose.x,rPose.y,rPose.th};
 	if(!fresh){
-		x=0,y=0,th=.1;
-		cout<<"sta pose: "<<x<<" "<<y<<" "<<th<<endl;
+		cout<<"sta pose: "<<p[0]<<" "<<p[1]<<" "<<p[2]<<endl;
 		//do the pose optimization and set rx,ry,rth
 		Problem problem;
-		for(int i=0;i<scan->xs.size();i++){
+		vector<double> xs;
+		vector<double> ys;
+		for(int i=0;i<scan->xs.size();i+=2){
 			if(isnan(scan->xs[i]) || isinf(scan->xs[i]))continue;
-			CostFunction *cost_fun=new AutoDiffCostFunction<LaserPointCost,1,1,1,1>
-							(new LaserPointCost(map,scan->xs[i],scan->ys[i]));
-			problem.AddResidualBlock(cost_fun,NULL,&x,&y,&th);
+			if(hypot(scan->xs[i],scan->ys[i])<.15)continue;
+			xs.push_back(scan->xs[i]);
+			ys.push_back(scan->ys[i]);
 		}
+		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCost,DYNAMIC,3>(new LaserScanCost(&map,&xs,&ys),xs.size());
+		problem.AddResidualBlock(cost_fun,NULL,p);
 		Solver::Options options;
 		//options.minimizer_type=LINE_SEARCH;
 		options.num_threads=4;
-		options.use_inner_iterations=true;
+		options.linear_solver_type=DENSE_QR;
+		options.use_nonmonotonic_steps=true;
 		options.minimizer_progress_to_stdout=true;
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
 		std::cout<<summary.FullReport()<<endl;
-		*rx=x;
-		*ry=y;
-		*rth=th;
-		cout<<"end pose: "<<x<<" "<<y<<" "<<th<<endl;
+		*rx=p[0];
+		*ry=p[1];
+		*rth=p[2];
+		cout<<"end pose: "<<p[0]<<" "<<p[1]<<" "<<p[2]<<endl;
 	}
 	fresh=false;
 	//add all the observations using the fine tuned pose
 	for(int i=0;i<scan->xs.size();i++){
-		map.addObservation(x,y,th,scan->xs[i],scan->ys[i]);
+		if(isnan(scan->xs[i]) || isinf(scan->xs[i]))continue;
+		if(hypot(scan->xs[i],scan->ys[i])<.15)continue;
+		map.addObservation(p[0],p[1],p[2],scan->xs[i],scan->ys[i]);
 	}
-	//cout<<"map after update"<<endl;
-	//for(int i=0;i<map.numX();i++){
-	//	for(int j=0;j<map.numY();j++){
-	//		cout<<map.getProb(i,j)<<" ";
-	//	}
-	//	cout<<endl;
-	//}
+}
+void ScanMatcher::printMap(){
+	map.printMap();
 }
