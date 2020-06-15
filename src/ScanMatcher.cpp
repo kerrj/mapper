@@ -28,7 +28,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx
 		Problem problem;
 		vector<double> xs;
 		vector<double> ys;
-		for(int i=0;i<scan->xs.size();i+=2){
+		for(int i=0;i<scan->xs.size();i++){
 			if(isnan(scan->xs[i]) || isinf(scan->xs[i]))continue;
 			if(hypot(scan->xs[i],scan->ys[i])<.15)continue;
 			xs.push_back(scan->xs[i]);

@@ -138,6 +138,8 @@ include_directories(
 	 src/ProbMap.cpp
 	 src/ScanMatcher.cpp
  )
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+add_compile_options(-std=c++11 -O3)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
