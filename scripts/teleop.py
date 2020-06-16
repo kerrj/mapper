@@ -12,7 +12,7 @@ rate=rospy.Rate(10)
 while not rospy.is_shutdown():
     rate.sleep()
     #cmd=input("Command: ")
-    cmd=readchar.readchar()
+    cmd=readchar.readkey()
     msg=BaseCommand()
     msg.header.stamp=rospy.get_rostime()
     msg.velocity=0

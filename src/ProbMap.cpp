@@ -92,7 +92,7 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,laserGridY-numY()+1);
 	pad=max(pad,robotGridX-numX()+1);
 	pad=max(pad,robotGridY-numY()+1);
-	resize(pad*10);
+	resize(pad*2);
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	laserGridX=round(gx);
 	laserGridY=round(gy);
@@ -100,8 +100,8 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	robotGridX=round(gx);
 	robotGridY=round(gy);
 	//register the endpoints of the laser
-	updateProb(laserGridX,laserGridY,false);
-	updateProb(robotGridX,robotGridY,true);
+	updateProb(laserGridX,laserGridY,P_HIT);
+	updateProb(robotGridX,robotGridY,P_MISS);
 	//call bresenham alg to paint between the endpoints with free space
 	fillBetween(robotGridX,robotGridY,laserGridX,laserGridY);
 }
@@ -148,7 +148,7 @@ void ProbMap::fillBetween(int x1,int y1,int x2,int y2)
     px=px+2*(dy1-dx1);
    }
    if(x==x2 && y==y2)break;
-   updateProb(x,y,true);
+   updateProb(x,y,P_MISS);
   }
  }
  else
@@ -185,7 +185,7 @@ void ProbMap::fillBetween(int x1,int y1,int x2,int y2)
     py=py+2*(dx1-dy1);
    }
    if(x==x2 && y==y2)break;
-   updateProb(x,y,true);
+   updateProb(x,y,P_MISS);
   }
  }
 }
@@ -198,18 +198,14 @@ double ProbMap::oddsinv(double p){
 double ProbMap::clamp(double val,double minval,double maxval)const{
 	return max(minval, min(val, maxval));
 }
-void ProbMap::updateProb(int x,int y,bool free){
+void ProbMap::updateProb(int x,int y,double update){
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
 		cout<<x<<" "<<y<<endl;
 		throw runtime_error("out of bounds access in updateProb");
 	}
 	double prior=getProb(x,y);
 	double post;
-	if(free){
-		post=clamp(oddsinv(odds(prior)*odds(P_MISS)),0.05,.95);
-	}else{
-		post=clamp(oddsinv(odds(prior)*odds(P_HIT)),0.05,.95);
-	}
+	post=clamp(oddsinv(odds(prior)*odds(update)),0.05,.95);
 	(*grid)[x][y]=getProbT(post);
 }
 void ProbMap::printMap(){
@@ -239,6 +235,7 @@ mapper::ProbMap ProbMap::toRosMsg()const{
 	msg.header.stamp=ros::Time::now();
 	msg.numX=numX();
 	msg.numY=numY();
+	msg.cellSize=CELL_SIZE;
 	vector<uint8_t> data;
 	for(int i=0;i<numX();i++){
 		data.insert(data.end(),(*grid)[i].begin(),(*grid)[i].end());

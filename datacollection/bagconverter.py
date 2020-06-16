@@ -1,6 +1,6 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('mapnocauchy.bag')
+bag=rosbag.Bag('living2kitchen2hall4852.bag')
 ranges=[]
 poses=[]
 xs=[]
@@ -27,6 +27,7 @@ for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_s
     elif topic=='/rectified_scan':
         xs.append(msg.xs)
         ys.append(msg.ys)
+        dim=max(dim,len(msg.xs))
     elif topic=="/map":
         mapmsg=msg
 npmap=np.reshape(np.array(list(mapmsg.data)),(mapmsg.numX,mapmsg.numY))
@@ -34,10 +35,11 @@ ranges=ranges[:-1]
 bag.close()
 npranges=np.zeros((len(ranges),dim))
 npposes=np.array(poses)
-npxs=np.zeros((len(ranges),dim))
-npys=np.zeros((len(ranges),dim))
+npxs=np.zeros((len(xs),dim))
+npys=np.zeros((len(xs),dim))
 for i in range(len(ranges)):
     npranges[i,0:len(ranges[i])]=ranges[i]
+for i in range(len(xs)):
     npxs[i,0:len(xs[i])]=xs[i]
     npys[i,0:len(ys[i])]=ys[i]
 np.save('ranges',npranges)

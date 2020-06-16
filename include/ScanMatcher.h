@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include "ProbMap.h"
+#include <list>
 #include "math.h"
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
@@ -48,13 +49,13 @@ public:
 	void resetMap();
 	void addScan(const mapper::RectifiedScan::ConstPtr& scan,double *rx,double *ry,double *rth);
 	void addOdom(const mapper::Odometry::ConstPtr& odom);
-	void printMap();
 	ProbMap getProbMap();
 private:
 	ProbMap map;
 	bool goodMeasurement(double x,double y);
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
+	list<mapper::Odometry::ConstPtr> odomQ;
 	bool fresh=true;
-	double MAX_RANGE=5.;//limit range we pay attention to measurements
+	double MAX_RANGE=7.;//limit range we pay attention to measurements
 };
 #endif
