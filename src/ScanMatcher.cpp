@@ -52,7 +52,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,double* rx
 		options.minimizer_progress_to_stdout=false;
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
-		std::cout<<summary.BriefReport()<<endl;
+		//std::cout<<summary.BriefReport()<<endl;
 		*rx=p[0];
 		*ry=p[1];
 		*rth=p[2];

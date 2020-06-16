@@ -1,6 +1,6 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('living2kitchen2hall4852.bag')
+bag=rosbag.Bag('aroundstairs3cm48525range.bag')
 ranges=[]
 poses=[]
 xs=[]

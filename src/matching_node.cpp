@@ -14,9 +14,13 @@ using namespace ceres;
 using namespace std;
 ScanMatcher matcher;
 ros::Publisher pub;
+int num=0;
 void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	double x,y,th;
+	ros::Time start=ros::Time::now();
 	matcher.addScan(scan,&x,&y,&th);
+	ros::Duration elapse=ros::Time::now()-start;
+	cout<<"matching: "<<elapse<<endl;
 	pub.publish(matcher.getProbMap().toRosMsg());
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){

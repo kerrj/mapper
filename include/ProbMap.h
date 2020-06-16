@@ -4,7 +4,8 @@
 #include <iostream>
 #include <memory>
 #include "Eigen/Geometry"
-#include "mapper/ProbMap.h"
+#include "mapper/ProbMap.h"//this is the msg include
+#include "mapper/Odometry.h"
 #include "Eigen/Dense"
 #include <math.h>
 using namespace std;
@@ -43,7 +44,7 @@ private:
 	shared_ptr<vector<vector<prob_t> > > grid;
 	double map_x,map_y;
 	const prob_t NO_INFO=50;
-	const double CELL_SIZE=.05;
+	const double CELL_SIZE=.03;
 	const double CELL_RES=1/CELL_SIZE;
 	const double DFLT_SIZE=10;
 	const double MIN_PAD=2.;

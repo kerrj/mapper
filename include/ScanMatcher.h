@@ -5,6 +5,7 @@
 #include "ProbMap.h"
 #include <list>
 #include "math.h"
+#include "ros/ros.h"
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/cubic_interpolation.h"
@@ -56,6 +57,6 @@ private:
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
 	list<mapper::Odometry::ConstPtr> odomQ;
 	bool fresh=true;
-	double MAX_RANGE=7.;//limit range we pay attention to measurements
+	double MAX_RANGE=5.;//limit range we pay attention to measurements
 };
 #endif
