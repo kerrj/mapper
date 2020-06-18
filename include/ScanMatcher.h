@@ -1,6 +1,7 @@
 #ifndef SCANMATCHER_H
 #define SCANMATCHER_H
 #include <vector>
+#include <string>
 #include <iostream>
 #include "ProbMap.h"
 #include <list>
@@ -9,7 +10,11 @@
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/cubic_interpolation.h"
+#include "mapper/Submap.h"
 #include "mapper/RectifiedScan.h"
+#include "tf2_ros/transform_broadcaster.h"
+#include "tf2/LinearMath/Quaternion.h"
+#include "geometry_msgs/TransformStamped.h"
 #include "mapper/Odometry.h"
 #include "glog/logging.h"
 using namespace std;
@@ -48,15 +53,20 @@ class ScanMatcher{
 public:
 	ScanMatcher();
 	void resetMap();
-	void addScan(const mapper::RectifiedScan::ConstPtr& scan,double *rx,double *ry,double *rth);
-	void addOdom(const mapper::Odometry::ConstPtr& odom);
+	void addScan(const mapper::RectifiedScan::ConstPtr& scan,tf2_ros::TransformBroadcaster* br);
+	void addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br);
+	string getFrameId()const;
+	mapper::Submap toRosMsg()const;
 	ProbMap getProbMap();
 private:
 	ProbMap map;
+	geometry_msgs::TransformStamped getTrans(double x,double y,double th,string parent_name,string child_name)const;
 	bool goodMeasurement(double x,double y);
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
+	mapper::Odometry scanPose;//holds the delayed position of robot lining up with the scans
 	list<mapper::Odometry::ConstPtr> odomQ;
 	bool fresh=true;
 	double MAX_RANGE=5.;//limit range we pay attention to measurements
+	int id;
 };
 #endif

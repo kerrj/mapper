@@ -232,7 +232,6 @@ void ProbMap::printMap(){
 }
 mapper::ProbMap ProbMap::toRosMsg()const{
 	mapper::ProbMap msg;
-	msg.header.stamp=ros::Time::now();
 	msg.numX=numX();
 	msg.numY=numY();
 	msg.originX=round(map_x/CELL_SIZE);

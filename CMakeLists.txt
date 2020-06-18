@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   std_srvs
+  tf2
+  tf2_ros
   cmake_modules
 )
 find_package(Eigen3 REQUIRED)
@@ -61,6 +63,7 @@ find_package(Ceres REQUIRED)
    ProbMap.msg
    BaseCommand.msg
    RectifiedScan.msg
+   Submap.msg
    Odometry.msg
  )
 ## Generate services in the 'srv' folder

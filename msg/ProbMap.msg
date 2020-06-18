@@ -1,4 +1,3 @@
-Header header
 int32 numX
 int32 numY
 int32 originX
