@@ -62,7 +62,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	if(!fresh){
 		//do the pose optimization and set rx,ry,rth
 		Problem problem;
-		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCost,DYNAMIC,3>(new LaserScanCost(&map,&xs,&ys),xs.size());
+		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(&map,&xs,&ys),xs.size());
 		problem.AddResidualBlock(cost_fun,new CauchyLoss(.9),p);
 		Solver::Options options;
 		options.num_threads=4;
@@ -92,6 +92,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		ROS_WARN("No transform broadcaster given to addScan, skipping publishing poses");
 		return;
 	}
+	scanTrans.header.stamp=scan->header.stamp;
 	br->sendTransform(scanTrans);
 	br->sendTransform(botTrans);
 }

@@ -12,6 +12,8 @@
 #include "ceres/cubic_interpolation.h"
 #include "mapper/Submap.h"
 #include "mapper/RectifiedScan.h"
+#include "Eigen/Dense"
+#include "Eigen/Geometry"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "geometry_msgs/TransformStamped.h"
@@ -48,6 +50,37 @@ private:
 	ProbMap* map;
 	vector<double>* xs;
 	vector<double>* ys;
+};
+class LaserScanCostEigen{
+public:
+	LaserScanCostEigen(ProbMap* pm,vector<double>* pxs,vector<double>* pys){
+		map=pm;
+		interp=make_shared<BiCubicInterpolator<ProbMap> >(*map);
+		points=Eigen::MatrixXd(2,pxs->size());
+		points.row(0)=Eigen::Map<Eigen::MatrixXd>(pxs->data(),1,pxs->size());
+		points.row(1)=Eigen::Map<Eigen::MatrixXd>(pys->data(),1,pys->size());
+	}
+	template<typename T>
+	bool operator()(const T* const p,T* residual)const{
+		Eigen::Rotation2D<T> rot(p[2]);
+		Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> transformed=rot.toRotationMatrix()*points;
+		Eigen::Matrix<T,2,1> trans(p[0],p[1]);
+		transformed.colwise()+=trans;
+		T one=T(1.0);
+		for(int i=0;i<transformed.cols();i++){
+			T gx,gy,interpRes;
+			T mx=transformed(0,i);
+			T my=transformed(1,i);
+			map->map2Grid(mx,my,&gx,&gy);
+        		interp->Evaluate(gx,gy,&interpRes);
+        		residual[i]=one-interpRes;
+		}
+        	return true;
+	}
+private:
+	shared_ptr<BiCubicInterpolator<ProbMap> > interp;
+	ProbMap* map;
+	Eigen::MatrixXd points;//2xN matrix
 };
 class ScanMatcher{
 public:
