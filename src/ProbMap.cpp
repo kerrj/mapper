@@ -205,30 +205,8 @@ void ProbMap::updateProb(int x,int y,double update){
 	}
 	double prior=getProb(x,y);
 	double post;
-	post=clamp(oddsinv(odds(prior)*odds(update)),0.05,.95);
+	post=clamp(oddsinv(odds(prior)*odds(update)),PROB_MIN,PROB_MAX);
 	(*grid)[x][y]=getProbT(post);
-}
-void ProbMap::printMap(){
-	double gx,gy;
-	map2Grid(0.,0.,&gx,&gy);
-	int gridx=round(gx);
-	int gridy=round(gy);
-	for(int i=0;i<numX();i++){
-		for(int j=0;j<numY();j++){
-			if(i==gridx && j==gridy){
-				cout<<"O";
-				continue;
-			}
-			double prob=getProb(i,j);
-			if(prob>.5){
-				cout<<"X";
-			}else{
-				cout<<" ";
-			}
-		}
-		cout<<endl;
-	}
-
 }
 mapper::ProbMap ProbMap::toRosMsg()const{
 	mapper::ProbMap msg;

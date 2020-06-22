@@ -140,6 +140,7 @@ include_directories(
 ## Declare a C++ library
  add_library(${PROJECT_NAME}
 	 src/ProbMap.cpp
+	 src/GlobalMap.cpp
 	 src/ScanMatcher.cpp
  )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})

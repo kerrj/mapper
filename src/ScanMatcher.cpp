@@ -63,7 +63,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		//do the pose optimization and set rx,ry,rth
 		Problem problem;
 		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(&map,&xs,&ys),xs.size());
-		problem.AddResidualBlock(cost_fun,new CauchyLoss(.9),p);
+		problem.AddResidualBlock(cost_fun,NULL,p);
 		Solver::Options options;
 		options.num_threads=4;
 		options.linear_solver_type=DENSE_QR;

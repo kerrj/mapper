@@ -9,7 +9,7 @@ RATE=30
 MAX_LINEAR_VEL=.5
 COMMAND_TIMEOUT=.4
 MAX_ANG_VEL=4
-WHEEL_ACC=15*(1/RATE)
+WHEEL_ACC=20*(1/RATE)
 targetVel=BaseCommand()
 command=MotorCommand()
 def targetCB(msg):
