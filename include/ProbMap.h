@@ -6,6 +6,7 @@
 #include "Eigen/Geometry"
 #include "mapper/ProbMap.h"//this is the msg include
 #include "mapper/Odometry.h"
+#include "RollingMax.h"
 #include "Eigen/Dense"
 #include <math.h>
 using namespace std;
@@ -26,6 +27,7 @@ public:
 		*gx=(mx+T(map_x))*CELL_RES;
 		*gy=(my+T(map_y))*CELL_RES;
 	}
+	vector<vector<float> > *getMaxMap(int height);
 	ProbMap& operator=(const ProbMap& other);
 	int numX()const;
 	int numY()const;
@@ -36,12 +38,14 @@ public:
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
+	vector<float> rollRow(vector<prob_t> &row,int K);
 	//adds num cells in every direction (new dims are (dx+2*num,dy+2*num))
 	void resize(int num);
 	double odds(double p);
 	double oddsinv(double p);
 	double clamp(double val,double minval,double maxval)const;
 	shared_ptr<vector<vector<prob_t> > > grid;
+	vector<vector<vector<float> > > maxes;
 	double map_x,map_y;
 	const prob_t NO_INFO=50;
 	const double CELL_RES=1/CELL_SIZE;

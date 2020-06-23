@@ -222,3 +222,39 @@ mapper::ProbMap ProbMap::toRosMsg()const{
 	msg.data=data;
 	return msg;
 }
+
+vector<vector<float> > *ProbMap::getMaxMap(int height){
+	if(height<0)throw runtime_error("negative height requested in getMaxMap");
+	if(height<maxes.size())return &maxes[height];
+	//otherwise we have to compute :(
+	for(int map=maxes.size();map<=height;map++){
+		vector<vector<float> > maxMap;
+		const int wSize=1<<map;
+		//first compute the max for rows of wSize
+		for(int x=0;x<numX();x++){
+			vector<float> newRow=rollRow((*grid)[x],wSize);
+			maxMap.push_back(newRow);
+		}
+		//then go up columns to accumulate maxes of the rows
+		for(int y=0;y<numY();y++){
+			RollingMax<float> r(wSize);
+			for(int x=numX()-1;x>=0;x--){
+				r.add(maxMap[x][y]);
+				maxMap[x][y]=r.getVal();
+			}
+		}
+		maxes.push_back(maxMap);
+	}
+	return &maxes[height];
+}
+vector<float> ProbMap::rollRow(vector<prob_t> &row, int size) {
+	RollingMax<float> r(size);
+	vector<float> res;
+	res.resize(row.size());
+	for(int i=row.size()-1;i>=0;i--){
+		r.add(getProb(row[i]));
+		res[i]=r.getVal();
+	}
+	return res;
+
+}

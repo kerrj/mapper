@@ -14,9 +14,12 @@ using namespace std;
 class BBNode{
 public:
 	double getScore();
-	static list<BBNode> getC0(const double T_WINDOW,const double R_WINDOW,const double T_RES,const double R_RES,double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map);
+	static list<BBNode> getC0(const double T_WINDOW,const double R_WINDOW,const double T_RES,const double R_RES,
+			double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map);
+	list<BBNode> branch();
+	//order of comparison is reversed to sort by decreasing score
 	bool operator<(BBNode &other){
-		return getScore()<other.getScore();
+		return getScore()>other.getScore();
 	}
 private:
 	/* Constructor for creating the root
