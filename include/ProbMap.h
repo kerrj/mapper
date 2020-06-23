@@ -32,6 +32,7 @@ public:
 	double getProb(prob_t p)const;
 	prob_t getProbT(double p)const;
 	double getProb(int x,int y) const;
+	const double CELL_SIZE=.03;
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
@@ -43,12 +44,11 @@ private:
 	shared_ptr<vector<vector<prob_t> > > grid;
 	double map_x,map_y;
 	const prob_t NO_INFO=50;
-	const double CELL_SIZE=.03;
 	const double CELL_RES=1/CELL_SIZE;
 	const double DFLT_SIZE=10;
 	const double PROB_MAX=.98;
 	const double PROB_MIN=.05;
-	const double MIN_PAD=5.;
+	const double MIN_PAD=2.;
 	const double P_HIT=.52;
 	const double P_MISS=.48;
 };

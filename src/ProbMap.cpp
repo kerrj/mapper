@@ -92,7 +92,7 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,laserGridY-numY()+1);
 	pad=max(pad,robotGridX-numX()+1);
 	pad=max(pad,robotGridY-numY()+1);
-	resize(pad*2);
+	resize(pad+MIN_PAD);
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	laserGridX=round(gx);
 	laserGridY=round(gy);
