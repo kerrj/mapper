@@ -1,5 +1,5 @@
 #include "GlobalMap.h"
-BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map){
+BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXd *points,ProbMap *map){
 	this->xi=xi;
 	this->yi=yi;
 	this->thi=thi;
@@ -7,6 +7,8 @@ BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,Eige
 	this->rx=x;
 	this->ry=y;
 	this->rth=th;
+	this->T_RES=T_RES;
+	this->R_RES=R_RES;
 	this->points=points;
 	this->map=map;
 	score=-1;
@@ -22,7 +24,7 @@ list<BBNode> BBNode::getC0(const double T_WINDOW,const double R_WINDOW,const dou
 			for(int jy=0;(1<<h0)*jy<=2*MAX_TI;jy++){
 				int xi = -MAX_TI + (1<<h0) * jx;
 				int yi = -MAX_TI + (1<<h0) * jy;
-				BBNode node(xi,yi,thi,h0,x,y,th,points,map);
+				BBNode node(xi,yi,thi,h0,x,y,th,T_RES,R_RES,points,map);
 				res.push_back(node);
 			}
 		}
@@ -36,16 +38,39 @@ list<BBNode> BBNode::branch(){
 	int newH=height-1;
 	for(int dx=0;dx<2;dx++){
 		for(int dy=0;dy<2;dy++){
-			BBNode newNode(xi+(1<<newH)*dx,yi+(1<<newH)*dy,thi,newH,rx,ry,rth,points,map);
+			BBNode newNode(xi+(1<<newH)*dx,yi+(1<<newH)*dy,thi,newH,rx,ry,rth,T_RES,R_RES,points,map);
 			res.push_back(newNode);
 		}
 	}
 	return res;
 }
+void BBNode::getPose(double *x, double *y, double *th){
+	if(height!=0)throw runtime_error("getPose() called on non leaf node");
+	*x=rx+xi*T_RES;
+	*y=ry+yi*T_RES;
+	*th=rth+thi*R_RES;
+}
 double BBNode::getScore(){
 	if(score>=0)return score;
 	//otherwise we need to compute and store
-	return 0;
+	vector<vector<float >> maxMap=map->getMaxMap(height);
+	score = 0;
+	Eigen::Rotation2D<double> R(rth);
+	Eigen::Vector2d trans(rx,ry);
+	Eigen::MatrixXd transPoints=R.toRotationMatrix()*(*points);
+	for(int i=0;i<transPoints.cols();i++){
+		double gx,gy;
+		double mx=transPoints(0,i);
+		double my=transPoints(1,i);
+		map->map2Grid(mx,my,&gx,&gy);
+		int gridX=round(gx);
+		int gridY=round(gy);
+		score+=maxMap[gridX][gridY];
+	}
+	return score;
+}
+bool BBNode::leaf(){
+	return height==0;
 }
 void GlobalMap::matchScan(Eigen::MatrixXd *points,ProbMap *map,double *x,double *y,double *th){
 	const double T_RES=map->CELL_SIZE;//increment for translation
@@ -53,4 +78,19 @@ void GlobalMap::matchScan(Eigen::MatrixXd *points,ProbMap *map,double *x,double 
 	const double T_WINDOW=2;//meter
 	const double R_WINDOW=.5;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
+	double best_score=0;
+	while(!stack.empty()){
+		BBNode top=stack.back();
+		stack.pop_back();
+		if(top.getScore()>best_score){
+			if(top.leaf()){
+				top.getPose(x,y,th);
+				best_score=top.getScore();
+			}else{
+				list<BBNode> newNodes=top.branch();
+				newNodes.sort();
+				stack.splice(stack.end(),newNodes);
+			}
+		}
+	}
 }

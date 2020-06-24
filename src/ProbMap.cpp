@@ -9,6 +9,7 @@ ProbMap::ProbMap(const ProbMap& old){
 	grid=old.grid;
 	map_x=old.map_x;
 	map_y=old.map_y;
+	maxes=old.maxes;
 }
 int ProbMap::numX()const{
 	return grid->size();
@@ -92,7 +93,7 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,laserGridY-numY()+1);
 	pad=max(pad,robotGridX-numX()+1);
 	pad=max(pad,robotGridY-numY()+1);
-	resize(pad+MIN_PAD);
+	resize(pad);
 	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
 	laserGridX=round(gx);
 	laserGridY=round(gy);
@@ -223,11 +224,12 @@ mapper::ProbMap ProbMap::toRosMsg()const{
 	return msg;
 }
 
-vector<vector<float> > *ProbMap::getMaxMap(int height){
+vector<vector<float> > ProbMap::getMaxMap(int height){
 	if(height<0)throw runtime_error("negative height requested in getMaxMap");
-	if(height<maxes.size())return &maxes[height];
+	if(height<maxes.size())return maxes[height];
 	//otherwise we have to compute :(
 	for(int map=maxes.size();map<=height;map++){
+		cout<<map<<endl;
 		vector<vector<float> > maxMap;
 		const int wSize=1<<map;
 		//first compute the max for rows of wSize
@@ -245,7 +247,7 @@ vector<vector<float> > *ProbMap::getMaxMap(int height){
 		}
 		maxes.push_back(maxMap);
 	}
-	return &maxes[height];
+	return maxes[height];
 }
 vector<float> ProbMap::rollRow(vector<prob_t> &row, int size) {
 	RollingMax<float> r(size);

@@ -96,7 +96,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	br->sendTransform(scanTrans);
 	br->sendTransform(botTrans);
 }
-ProbMap ScanMatcher::getProbMap(){
+ProbMap &ScanMatcher::getProbMap(){
 	return map;
 }
 mapper::Submap ScanMatcher::toRosMsg()const{

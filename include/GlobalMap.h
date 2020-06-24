@@ -17,20 +17,22 @@ public:
 	static list<BBNode> getC0(const double T_WINDOW,const double R_WINDOW,const double T_RES,const double R_RES,
 			double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map);
 	list<BBNode> branch();
-	//order of comparison is reversed to sort by decreasing score
+	void getPose(double *x,double *y,double *th);
 	bool operator<(BBNode &other){
-		return getScore()>other.getScore();
+		return getScore()<other.getScore();
 	}
+	bool leaf();
 private:
 	/* Constructor for creating the root
 	 * x,y,th are start location of the node.
 	 */
-	BBNode(int xi,int yi,int thi,int height,double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map);
+	BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXd *points,ProbMap *map);
 	int xi,yi,thi,height;
 	Eigen::MatrixXd *points;
 	ProbMap *map;
 	double rx,ry,rth;//start position of root
-	double score=-1;
+	double score=-1;//-1 used as uninitialized
+	double R_RES,T_RES;
 };
 class GlobalMap{
 public:

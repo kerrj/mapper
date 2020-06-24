@@ -90,7 +90,7 @@ public:
 	void addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br);
 	string getFrameId()const;
 	mapper::Submap toRosMsg()const;
-	ProbMap getProbMap();
+	ProbMap &getProbMap();
 private:
 	ProbMap map;
 	geometry_msgs::TransformStamped getTrans(double x,double y,double th,string parent_name,string child_name)const;
