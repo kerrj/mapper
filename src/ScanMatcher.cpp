@@ -1,4 +1,6 @@
 #include "ScanMatcher.h"
+using namespace ceres;
+using namespace std;
 void doRKUpdate(mapper::Odometry &pose,const mapper::Odometry::ConstPtr &odom){
 	double RT=pose.th;
 	double opt1=RT+odom->th;
@@ -92,7 +94,6 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		ROS_WARN("No transform broadcaster given to addScan, skipping publishing poses");
 		return;
 	}
-	scanTrans.header.stamp=scan->header.stamp;
 	br->sendTransform(scanTrans);
 	br->sendTransform(botTrans);
 }

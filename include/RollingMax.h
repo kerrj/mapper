@@ -2,7 +2,6 @@
 #define ROLLING_MAX_H
 #include <list>
 #include <limits>
-using namespace std;
 template<typename T>
 class RollingMax{
 public:
@@ -27,8 +26,8 @@ public:
 		return vals.front();
 	}
 private:
-	list<T> vals;
-	list<int> ids;
+	std::list<T> vals;
+	std::list<int> ids;
 	int size,id;
 };
 #endif

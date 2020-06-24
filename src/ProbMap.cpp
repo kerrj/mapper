@@ -1,5 +1,5 @@
 #include "ProbMap.h"
-
+using namespace std;
 ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
 	grid=make_shared<grid_t>(num_cells,vector<prob_t>(num_cells,NO_INFO));
@@ -229,7 +229,6 @@ vector<vector<float> > ProbMap::getMaxMap(int height){
 	if(height<maxes.size())return maxes[height];
 	//otherwise we have to compute :(
 	for(int map=maxes.size();map<=height;map++){
-		cout<<map<<endl;
 		vector<vector<float> > maxMap;
 		const int wSize=1<<map;
 		//first compute the max for rows of wSize

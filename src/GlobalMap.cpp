@@ -1,5 +1,6 @@
 #include "GlobalMap.h"
-BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXd *points,ProbMap *map){
+using namespace std;
+BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXf *points,ProbMap *map){
 	this->xi=xi;
 	this->yi=yi;
 	this->thi=thi;
@@ -11,10 +12,10 @@ BBNode::BBNode(int xi,int yi,int thi,int height,double x,double y,double th,cons
 	this->R_RES=R_RES;
 	this->points=points;
 	this->map=map;
-	score=-1;
+	this->score=-1;
 }
 list<BBNode> BBNode::getC0(const double T_WINDOW,const double R_WINDOW,const double T_RES,const double R_RES,
-		double x,double y,double th,Eigen::MatrixXd *points,ProbMap *map){
+		double x,double y,double th,Eigen::MatrixXf *points,ProbMap *map){
 	list<BBNode> res;
 	const double MAX_TI=ceil(T_WINDOW/T_RES);//these are w_x,w_y,w_th in the paper
 	const double MAX_RI=ceil(R_WINDOW/R_RES);
@@ -45,7 +46,6 @@ list<BBNode> BBNode::branch(){
 	return res;
 }
 void BBNode::getPose(double *x, double *y, double *th){
-	if(height!=0)throw runtime_error("getPose() called on non leaf node");
 	*x=rx+xi*T_RES;
 	*y=ry+yi*T_RES;
 	*th=rth+thi*R_RES;
@@ -53,11 +53,14 @@ void BBNode::getPose(double *x, double *y, double *th){
 double BBNode::getScore(){
 	if(score>=0)return score;
 	//otherwise we need to compute and store
-	vector<vector<float >> maxMap=map->getMaxMap(height);
+	vector<vector<float> > maxMap=map->getMaxMap(height);
 	score = 0;
-	Eigen::Rotation2D<double> R(rth);
-	Eigen::Vector2d trans(rx,ry);
-	Eigen::MatrixXd transPoints=R.toRotationMatrix()*(*points);
+	double sx,sy,sth;
+	getPose(&sx,&sy,&sth);
+	Eigen::Rotation2D<float> R(sth);
+	Eigen::Vector2f trans(sx,sy);
+	Eigen::MatrixXf transPoints=R.toRotationMatrix()*(*points);
+	transPoints.colwise()+=trans;
 	for(int i=0;i<transPoints.cols();i++){
 		double gx,gy;
 		double mx=transPoints(0,i);
@@ -65,6 +68,7 @@ double BBNode::getScore(){
 		map->map2Grid(mx,my,&gx,&gy);
 		int gridX=round(gx);
 		int gridY=round(gy);
+		if(gridX<0 || gridX>=map->numX() || gridY<0 || gridY>=map->numY())continue;
 		score+=maxMap[gridX][gridY];
 	}
 	return score;
@@ -72,18 +76,33 @@ double BBNode::getScore(){
 bool BBNode::leaf(){
 	return height==0;
 }
-void GlobalMap::matchScan(Eigen::MatrixXd *points,ProbMap *map,double *x,double *y,double *th){
+GlobalMap::GlobalMap(shared_ptr<tf2_ros::Buffer> buf){
+	tfBuffer=buf;
+}
+void GlobalMap::getPose(double *x, double *y, double *th, string frame, string child_frame){
+	geometry_msgs::TransformStamped t=tfBuffer->lookupTransform(frame,child_frame,ros::Time(0));
+	*x=t.transform.translation.x;
+	*y=t.transform.translation.y;
+	tf2::Quaternion q;
+	tf2::fromMsg(t.transform.rotation,q);
+	*th=q.getAngle();
+}
+void GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th){
 	const double T_RES=map->CELL_SIZE;//increment for translation
-	const double R_RES=acos(1-(pow(T_RES,2)/(2*pow(5,2))));//5 is the max range (approx is ok)
+	const double R_RES=.017;//increment for rotation
 	const double T_WINDOW=2;//meter
-	const double R_WINDOW=.5;//rad
+	const double R_WINDOW=.3;//rad
+	const double SCORE_THRESH=points->cols()*.4;
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
 	double best_score=0;
+	int i=0;
 	while(!stack.empty()){
 		BBNode top=stack.back();
 		stack.pop_back();
+		if(top.getScore()<SCORE_THRESH)continue;
 		if(top.getScore()>best_score){
 			if(top.leaf()){
+				cout<<"leaf properties"<<top.xi<<","<<top.yi<<","<<top.thi<<","<<top.getScore()<<endl;
 				top.getPose(x,y,th);
 				best_score=top.getScore();
 			}else{
