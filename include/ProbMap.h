@@ -26,7 +26,7 @@ public:
 		*gx=(mx+T(map_x))*CELL_RES;
 		*gy=(my+T(map_y))*CELL_RES;
 	}
-	std::vector<std::vector<float> > getMaxMap(int height);
+	std::vector<std::vector<float> > *getMaxMap(int height);
 	ProbMap& operator=(const ProbMap& other);
 	int numX()const;
 	int numY()const;

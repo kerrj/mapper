@@ -10,13 +10,20 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Transform.h"
 #include "tf2_ros/buffer.h"
+#include "tf2/utils.h"
 #include "mapper/RectifiedScan.h"
 #include "ceres/cubic_interpolation.h"
+#include "ceres/ceres.h"
+#include "LaserScanCostEigen.h"
 #include "Eigen/Dense"
 #include "Eigen/Geometry"
 using namespace std;
 class BBNode{
 public:
+	/* Constructor for creating the root
+	 * x,y,th are start location of the node.
+	 */
+	BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXf *points,ProbMap *map);
 	double getScore();
 	static list<BBNode> getC0(const double T_WINDOW,const double R_WINDOW,const double T_RES,const double R_RES,
 			double x,double y,double th,Eigen::MatrixXf *points,ProbMap *map);
@@ -28,10 +35,6 @@ public:
 	bool leaf();
 	int xi,yi,thi,height;
 private:
-	/* Constructor for creating the root
-	 * x,y,th are start location of the node.
-	 */
-	BBNode(int xi,int yi,int thi,int height,double x,double y,double th,const double T_RES,const double R_RES,Eigen::MatrixXf *points,ProbMap *map);
 	Eigen::MatrixXf *points;
 	ProbMap *map;
 	double rx,ry,rth;//start position of root
@@ -44,7 +47,7 @@ public:
 	void addSubmap(ProbMap map);
 	void findCorrespondences();//TODO define interface
 	//points is 2xN in robot frame, x,y,th are in the given ProbMap frame, WILL BE MODIFIED BY ALG
-	void matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
+	bool matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
 	ProbMap getMap();
 	void getPose(double *x, double *y, double *th, std::string frame, std::string child_frame);
 private:

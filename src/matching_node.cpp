@@ -17,7 +17,6 @@
 #include "std_srvs/Trigger.h"
 #include <vector>
 #include <iostream>
-using namespace ceres;
 using namespace std;
 ScanMatcher matcher;
 mapper::RectifiedScan::ConstPtr lastScan;
@@ -31,7 +30,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	ros::Time start=ros::Time::now();
 	matcher.addScan(scan,&br);
 	ros::Duration elapse=ros::Time::now()-start;
-	cout<<"matching: "<<elapse<<endl;
+	//cout<<"matching: "<<elapse<<endl;
 	pub.publish(matcher.toRosMsg());
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
@@ -41,22 +40,35 @@ void odomCB(const mapper::Odometry::ConstPtr& odom){
 bool resetCB(std_srvs::Trigger::Request &req,std_srvs::Trigger::Response &resp){
 	//temporarily used as a test CB
 	cout<<"testing max map"<<endl;
-	cout<<"map size: "<<matcher.getProbMap().numX()<<"x"<<matcher.getProbMap().numY()<<endl;
-	ros::Time start=ros::Time::now();
 	//put test tings here
-	double x,y,th;
+	double cx,cy,cth,x,y,th;
 	vector<float> xs=lastScan->xs;
 	vector<float> ys=lastScan->ys;
-	gMap.getPose(&x,&y,&th,"submap_0","wheel_base");
-	x+=1.1;
 	Eigen::MatrixXf points(2,xs.size());
 	points.row(0)=Eigen::Map<Eigen::MatrixXf>(xs.data(),1,xs.size());
 	points.row(1)=Eigen::Map<Eigen::MatrixXf>(ys.data(),1,ys.size());
-	cout<<"start pose"<<x<<","<<y<<","<<th<<endl;
-	gMap.matchScan(&points,&matcher.getProbMap(),&x,&y,&th);
-	cout<<"end pose"<<x<<","<<y<<","<<th<<endl;
+	for(float dx=-.1;dx<=.1;dx+=.01){
+		for(float dy=-.1;dy<=.1;dy+=.01){
+			for(float dth=-.25;dth<.25;dth+=.1){
+				cout<<"testing offset "<<dx<<","<<dy<<","<<dth<<endl;
+				gMap.getPose(&cx,&cy,&cth,"submap_0","last_scan");
+				x=cx+dx;
+				y=cy+dy;
+				th=cth+dth;
+				bool found=gMap.matchScan(&points,&matcher.getProbMap(),&x,&y,&th);
+				if(!found){
+					cout<<"no match found"<<endl;
+				}
+				double xerr=abs(x-cx);
+				double yerr=abs(y-cy);
+				double therr=abs(th-cth);
+				if(xerr>.03 || yerr>.03 || therr>.01){
+					cout<<"err: "<<xerr<<" , "<<yerr<<" , "<<therr<<endl;
+				}
+			}
+		}
+	}
 	//end test things
-	cout<<ros::Time::now()-start<<endl;
 	//matcher.resetMap();
 	resp.success=true;
 	return true;
