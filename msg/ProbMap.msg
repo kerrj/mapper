@@ -1,6 +1,6 @@
 int32 numX
 int32 numY
-int32 originX
-int32 originY
-float32 cellSize
+float64 originX
+float64 originY
+float64 cellSize
 uint8[] data

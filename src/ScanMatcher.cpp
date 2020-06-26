@@ -22,16 +22,20 @@ ScanMatcher::ScanMatcher(){
 	scanPose.th=0;
 	id=0;
 }
-void ScanMatcher::resetMap(){
+ProbMap ScanMatcher::resetMap(){
 	rPose.x=0;
 	rPose.y=0;
 	rPose.th=0;
 	scanPose.x=0;
 	scanPose.y=0;
 	scanPose.th=0;
+	map.crop();
+	ProbMap cropped(map);
+	cropped.crop();
 	map=ProbMap();
 	fresh=true;
 	id++;
+	return cropped;
 }
 void ScanMatcher::addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br){
 	odomQ.push_back(odom);

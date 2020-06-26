@@ -1,6 +1,6 @@
 import numpy as np
 import rosbag
-bag=rosbag.Bag('houseend.bag')
+bag=rosbag.Bag('house.bag')
 ranges=[]
 poses=[]
 xs=[]
@@ -10,11 +10,13 @@ dim=0
 i=0
 lastodom=[0,0,0]
 lastotime=0
+dist=0
 for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_scan','/map','/submap']):
     if topic=='/wheel_odom':
         dt=msg.header.stamp.to_time()-lastotime
         if dt>.05:
             print("bad odom",dt,i)
+        dist+=msg.x
         lastotime=msg.header.stamp.to_time()
         lastodom[0]+=msg.x*np.cos(lastodom[2])
         lastodom[1]+=msg.x*np.sin(lastodom[2])
@@ -32,6 +34,7 @@ for topic,msg,t in bag.read_messages(topics=['/scan','/wheel_odom','/rectified_s
         mapmsg=msg
     elif topic=='/submap':
         mapmsg=msg.map
+print("total distance travelled",dist)
 npmap=np.reshape(np.array(list(mapmsg.data)),(mapmsg.numX,mapmsg.numY))
 ranges=ranges[:-1]
 bag.close()

@@ -50,35 +50,6 @@ void BBNode::getPose(double *x, double *y, double *th){
 }
 double BBNode::getScore(){
 	if(score>=0)return score;
-	/*
-	score = 0;
-	double sx,sy,sth;
-	getPose(&sx,&sy,&sth);
-	Eigen::Rotation2D<float> R(sth);
-	Eigen::Vector2f trans(sx,sy);
-	Eigen::MatrixXf transPoints=R.toRotationMatrix()*(*points);
-	transPoints.colwise()+=trans;
-	for(int i=0;i<transPoints.cols();i++){
-		double gx,gy;
-		double mx=transPoints(0,i);
-		double my=transPoints(1,i);
-		map->map2Grid(mx,my,&gx,&gy);
-		int gridX=round(gx);
-		int gridY=round(gy);
-		if(gridX<0 || gridX>=map->numX() || gridY<0 || gridY>=map->numY())continue;
-		int winsize=(1<<height);
-		double maxval=0;
-		for(int lx=0;lx<winsize;lx++){
-			for(int ly=0;ly<winsize;ly++){
-				if(gridX+lx<0 || gridX+lx>=map->numX() || gridY+ly<0 || gridY+ly>=map->numY())continue;
-				maxval=max(maxval,map->getProb(gridX+lx,gridY+ly));
-			}
-		}
-		score+=maxval;
-	}
-	return score;*/
-
-	
 	//otherwise we need to compute and store
 	vector<vector<float> > *maxMap=map->getMaxMap(height);
 	score = 0;
@@ -123,7 +94,7 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	const double T_WINDOW=2;//meter
 	const double R_WINDOW=.3;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
-	double best_score=points->cols()*.5;
+	double best_score=points->cols()*.6;
 	bool found_match=false;
 	while(!stack.empty()){
 		BBNode top=stack.back();
@@ -136,13 +107,7 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 			}else{
 				double sx,sy,sth;
 				top.getPose(&sx,&sy,&sth);
-				//cout<<"node "<<top.xi+100<<","<<top.yi+100<<","<<top.height<<" pos: "<<","<<sx<<","<<sy<<" score "<<top.getScore()<<endl;
 				list<BBNode> newNodes=top.branch();
-				/*cout<<"children: ";
-				for(auto b:newNodes){
-					cout<<"("<<b.xi+100<<","<<b.yi+100<<")";
-				}
-				cout<<endl;*/
 				newNodes.sort();
 				stack.splice(stack.end(),newNodes);
 			}

@@ -1,11 +1,11 @@
 import rosbag
 import numpy as np
 import imageio
-bag=rosbag.Bag('houseend.bag')
+bag=rosbag.Bag('croptest.bag')
 size=0
 msglist=list(bag.read_messages(topics=['/submap']))
 #size=msglist[-1][1].numX
-size=msglist[-1][1].map.numX
+size=max(msglist[-1][1].map.numX,msglist[-1][1].map.numY)
 frame=np.zeros((size,size),dtype='uint8')
 with imageio.get_writer('map.gif',mode='I') as writer:
     for _,msg,_ in msglist: 

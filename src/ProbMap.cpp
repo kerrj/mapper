@@ -2,7 +2,7 @@
 using namespace std;
 ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
-	grid=make_shared<grid_t>(num_cells,vector<prob_t>(num_cells,NO_INFO));
+	grid=make_shared<vector<vector<prob_t> > >(num_cells,vector<prob_t>(num_cells,0));
 	map_x=map_y=(num_cells/2)*CELL_SIZE;
 }
 ProbMap::ProbMap(const ProbMap& old){
@@ -10,6 +10,44 @@ ProbMap::ProbMap(const ProbMap& old){
 	map_x=old.map_x;
 	map_y=old.map_y;
 	maxes=old.maxes;
+}
+ProbMap::ProbMap(const mapper::ProbMap::ConstPtr &msg){
+	map_x=msg->originX;
+	map_y=msg->originY;
+	for(int i=0;i<msg->numX;i++){
+		auto it=msg->data.begin()+msg->numY*i;
+		vector<prob_t> row(it,it+msg->numY+1);
+		grid->push_back(row);
+	}
+}
+void ProbMap::crop(){
+	//shrinks the map to the size of the observed region
+	int maxx=-1;int maxy=-1;
+	int minx=numeric_limits<int>::max();int miny=numeric_limits<int>::max();
+	//the above represent the range of VALID readings (inclusive)
+	for(int x=0;x<numX();x++){
+		for(int y=0;y<numY();y++){
+			if(x>minx && x<maxx && y>miny && y<maxy)continue;
+			if((*grid)[x][y]!=0){
+				//if this location is observed, we need to make sure its 
+				//inside the crop boundary
+				maxx=max(x,maxx);
+				maxy=max(y,maxy);
+				minx=min(x,minx);
+				miny=min(y,miny);
+			}
+		}
+	}
+	if(maxx==-1 || maxy==-1 || minx==numeric_limits<int>::max() || miny==numeric_limits<int>::max()){
+		throw runtime_error("crop called on a blank map");
+	}
+	shared_ptr<vector<vector<prob_t> > > newGrid=make_shared<vector<vector<prob_t> > >();
+	for(int x=minx;x<=maxx;x++){
+		newGrid->emplace_back((*grid)[x].begin()+miny,(*grid)[x].begin()+maxy+1);
+	}
+	grid=newGrid;
+	map_x-=minx*CELL_SIZE;
+	map_y-=miny*CELL_SIZE;
 }
 int ProbMap::numX()const{
 	return grid->size();
@@ -28,6 +66,7 @@ ProbMap& ProbMap::operator=(const ProbMap &other){
         return *this;
 }
 double ProbMap::getProb(prob_t p)const{
+	if(p==0)p=NO_INFO;
 	return ((double)p)/255.;
 }
 double ProbMap::getProb(int x,int y)const{
@@ -47,10 +86,10 @@ void ProbMap::resize(int num){
 	num=max((int)(MIN_PAD/CELL_SIZE),num);
 	int oldx=numX();
 	int oldy=numY();
-	shared_ptr<grid_t> newGrid=make_shared<grid_t>(2*num+grid->size(),vector<prob_t>(num,NO_INFO));
+	shared_ptr<vector<vector<prob_t> > > newGrid=make_shared<vector<vector<prob_t> > >(2*num+grid->size(),vector<prob_t>(num,0));
 	//append on the middle section
-	vector<prob_t> middleBlank(oldy,NO_INFO);
-	vector<prob_t> endBlank(num,NO_INFO);
+	vector<prob_t> middleBlank(oldy,0);
+	vector<prob_t> endBlank(num,0);
 	for(int i=0;i<newGrid->size();i++){
 		if(i<num || i>=num+grid->size()){
 			(*newGrid)[i].insert((*newGrid)[i].end(),middleBlank.begin(),middleBlank.end());
@@ -205,16 +244,15 @@ void ProbMap::updateProb(int x,int y,double update){
 		throw runtime_error("out of bounds access in updateProb");
 	}
 	double prior=getProb(x,y);
-	double post;
-	post=clamp(oddsinv(odds(prior)*odds(update)),PROB_MIN,PROB_MAX);
+	double post=clamp(oddsinv(odds(prior)*odds(update)),PROB_MIN,PROB_MAX);
 	(*grid)[x][y]=getProbT(post);
 }
 mapper::ProbMap ProbMap::toRosMsg()const{
 	mapper::ProbMap msg;
 	msg.numX=numX();
 	msg.numY=numY();
-	msg.originX=round(map_x/CELL_SIZE);
-	msg.originY=round(map_y/CELL_SIZE);
+	msg.originX=map_x;
+	msg.originY=map_y;
 	msg.cellSize=CELL_SIZE;
 	vector<uint8_t> data;
 	for(int i=0;i<numX();i++){

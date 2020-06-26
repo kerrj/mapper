@@ -25,17 +25,6 @@ public:
 	T getVal(){
 		return vals.front();
 	}
-	/*void add(T v){
-		vals.push_back(v);
-		if(vals.size()>size)vals.pop_front();
-	}
-	T getVal(){
-		T maxval=0;
-		for(auto e:vals){
-			maxval=std::max(maxval,e);
-		}
-		return maxval;
-	}*/
 private:
 	std::list<T> vals;
 	std::list<int> ids;

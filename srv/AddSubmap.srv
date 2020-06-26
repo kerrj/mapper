@@ -1,0 +1,5 @@
+Submap map
+#transform from previous submap to this one
+geometry_msgs/TransformStamped transform
+---
+bool success
