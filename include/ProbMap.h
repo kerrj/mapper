@@ -14,7 +14,7 @@ class ProbMap{
 public:
 	ProbMap();
 	ProbMap(const ProbMap &old);
-	ProbMap(const mapper::ProbMap::ConstPtr &msg);
+	ProbMap(mapper::ProbMap msg);
 	void crop();
 	enum{DATA_DIMENSION=1};
 	void GetValue(int x,int y,double* f)const;

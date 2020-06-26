@@ -44,15 +44,12 @@ private:
 class GlobalMap{
 public:
 	GlobalMap(std::shared_ptr<tf2_ros::Buffer> buf);
-	void addSubmap(ProbMap map);
-	void findCorrespondences();//TODO define interface
+	void addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform);
 	//points is 2xN in robot frame, x,y,th are in the given ProbMap frame, WILL BE MODIFIED BY ALG
 	bool matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
 	ProbMap getMap();
 	void getPose(double *x, double *y, double *th, std::string frame, std::string child_frame);
 private:
-	//x,y,th are position of addition in the base frame
-	void mergeProbMaps(ProbMap &base,ProbMap &addition,double x,double y,double th);
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
 	std::vector<ProbMap> submaps;
 };

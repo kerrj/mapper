@@ -11,13 +11,13 @@ ProbMap::ProbMap(const ProbMap& old){
 	map_y=old.map_y;
 	maxes=old.maxes;
 }
-ProbMap::ProbMap(const mapper::ProbMap::ConstPtr &msg){
-	map_x=msg->originX;
-	map_y=msg->originY;
-	for(int i=0;i<msg->numX;i++){
-		auto it=msg->data.begin()+msg->numY*i;
-		vector<prob_t> row(it,it+msg->numY+1);
-		grid->push_back(row);
+ProbMap::ProbMap(mapper::ProbMap msg){
+	map_x=msg.originX;
+	map_y=msg.originY;
+	grid=make_shared<vector<vector<prob_t> > >();
+	for(int i=0;i<msg.numX;i++){
+		auto it=msg.data.begin()+msg.numY*i;
+		grid->emplace_back(it,it+msg.numY+1);
 	}
 }
 void ProbMap::crop(){
