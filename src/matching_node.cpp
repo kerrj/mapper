@@ -17,7 +17,7 @@
 #include "mapper/Submap.h"
 #include <vector>
 #include <iostream>
-const double MAX_DIST_PER_SUBMAP=1;
+const double MAX_DIST_PER_SUBMAP=5;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;

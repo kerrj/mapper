@@ -26,14 +26,19 @@ public:
 		*gx=(mx+T(map_x))*CELL_RES;
 		*gy=(my+T(map_y))*CELL_RES;
 	}
+	void grid2Map(int gx,int gy,double* mx,double* my){
+		*mx=gx*CELL_SIZE-map_x;
+		*my=gy*CELL_SIZE-map_y;
+	}
 	std::vector<std::vector<float> > *getMaxMap(int height);
-	ProbMap& operator=(const ProbMap& other);
+	void resize(double x,double y);
 	int numX()const;
 	int numY()const;
 	double getProb(prob_t p)const;
 	prob_t getProbT(double p)const;
-	double getProb(int x,int y) const;
-	const double CELL_SIZE=.03;
+	double getProb(int x,int y,bool observability=false) const;
+	void setProb(int x,int y,double p);
+	static constexpr double CELL_SIZE=.03;
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
@@ -46,13 +51,13 @@ private:
 	std::shared_ptr<std::vector<std::vector<prob_t> > > grid;
 	std::vector<std::vector<std::vector<float> > > maxes;
 	double map_x,map_y;
-	const prob_t NO_INFO=50;//NEVER MAKE THIS 0 since its reserved for keeping track of observed places
-	const double CELL_RES=1/CELL_SIZE;
-	const double DFLT_SIZE=10;
-	const double PROB_MAX=.98;
-	const double PROB_MIN=.05;
-	const double MIN_PAD=2.;
-	const double P_HIT=.52;
-	const double P_MISS=.48;
+	static constexpr prob_t NO_INFO=50;//NEVER MAKE THIS 0 since its reserved for keeping track of observed places
+	static constexpr double CELL_RES=1/CELL_SIZE;
+	static constexpr double DFLT_SIZE=10;
+	static constexpr double PROB_MAX=.98;
+	static constexpr double PROB_MIN=.05;
+	static constexpr double MIN_PAD=2.;
+	static constexpr double P_HIT=.52;
+	static constexpr double P_MISS=.48;
 };
 #endif

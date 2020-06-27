@@ -16,6 +16,7 @@
 #include "ceres/ceres.h"
 #include "LaserScanCostEigen.h"
 #include "Eigen/Dense"
+#include "geometry_msgs/PointStamped.h"
 #include "Eigen/Geometry"
 using namespace std;
 class BBNode{

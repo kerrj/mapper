@@ -131,12 +131,43 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	return true;
 }
 void GlobalMap::addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform){
-	cout<<"adding new submap "<<endl;
 	cout<<transform<<endl;
 	submaps.push_back(map);
 }
-ProbMap getMap(){
-	ProbMap map=submaps[0];
-	//just iterate and slowly add everything to the base map
-	
+ProbMap GlobalMap::getMap(){
+	//this is janky for now to test things
+	ProbMap map;
+	double mx,my,gx,gy;
+	ProbMap m=submaps[0];
+	for(int xi=0;xi<m.numX();xi++){
+		for(int yi=0;yi<m.numY();yi++){
+			m.grid2Map(xi,yi,&mx,&my);
+			map.resize(mx,my);
+			map.map2Grid(mx,my,&gx,&gy);
+			int gridx=round(gx);
+			int gridy=round(gy);
+			map.setProb(gridx,gridy,m.getProb(xi,yi,true));
+		}
+	}
+	for(int i=1;i<submaps.size();i++){
+		m=submaps[i];
+		for(int xi=0;xi<m.numX();xi++){
+			for(int yi=0;yi<m.numY();yi++){
+				m.grid2Map(xi,yi,&mx,&my);
+				geometry_msgs::PointStamped p;
+				p.point.x=mx;
+				p.point.y=my;
+				p.point.z=0;
+				p.header.frame_id="submap_"+to_string(i);
+				tfBuffer->transform(p,p,"submap_0");
+				map.resize(p.point.x,p.point.y);
+				map.map2Grid(p.point.x,p.point.y,&gx,&gy);
+				int gridx=round(gx);
+				int gridy=round(gy);
+				double newprob=max(m.getProb(xi,yi,true),map.getProb(gridx,gridy,true));
+				map.setProb(gridx,gridy,newprob);
+			}
+		}
+	}
+	return map;
 }

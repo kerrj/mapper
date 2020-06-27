@@ -59,20 +59,15 @@ int ProbMap::numY()const{
 void ProbMap::GetValue(int x,int y,double* f)const{
 	*f=getProb(x,y);
 }
-ProbMap& ProbMap::operator=(const ProbMap &other){
-	if(this!=&other){
-                grid=other.grid;
-        }
-        return *this;
-}
 double ProbMap::getProb(prob_t p)const{
 	if(p==0)p=NO_INFO;
 	return ((double)p)/255.;
 }
-double ProbMap::getProb(int x,int y)const{
+double ProbMap::getProb(int x,int y,bool observability)const{
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
 		return getProb(NO_INFO);
 	}
+	if(observability)return (*grid)[x][y]/255.;
 	return getProb((*grid)[x][y]);
 }
 prob_t ProbMap::getProbT(double prob)const{
@@ -80,6 +75,14 @@ prob_t ProbMap::getProbT(double prob)const{
 	p=clamp(p,0,255);
 	prob_t pt=p;
 	return pt;
+}
+void ProbMap::setProb(int x,int y,double p){
+	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		cout<<x<<" "<<y<<endl;
+		throw runtime_error("out of bounds access in setProb");
+	}
+	prob_t prob=getProbT(p);
+	(*grid)[x][y]=prob;
 }
 void ProbMap::resize(int num){
 	if(num==0)return;
@@ -106,6 +109,17 @@ void ProbMap::resize(int num){
 	map_y+=num*CELL_SIZE;
 	if(oldx+2*num!=numX())throw runtime_error("wrong x dim");
 	if(oldy+2*num!=numY())throw runtime_error("wrong y dim");
+}
+void ProbMap::resize(double x,double y){
+	double gx,gy;
+	map2Grid(x,y,&gx,&gy);
+	int gridX=round(gx);
+	int gridY=round(gy);
+	int pad=max(pad,0-gridY);
+	pad=max(pad,0-gridX);
+	pad=max(pad,gridX-numX()+1);
+	pad=max(pad,gridY-numY()+1);
+	resize(pad);
 }
 void ProbMap::addObservation(double rx,double ry,double rth,double px,double py){
 	//first find the grid coords of the start and end points
