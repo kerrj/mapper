@@ -5,20 +5,23 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/TransformStamped.h"
+#include <mutex>
 #include "mapper/RectifiedScan.h"
 const double MATCH_INTERVAL=2;
 using namespace std;
 shared_ptr<tf2_ros::Buffer> buf=make_shared<tf2_ros::Buffer>();
 GlobalMap gmap(buf);
+mutex gmap_lock;
 ros::Publisher mapPub;
+bool publish=false;
 bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response &res){
 	static tf2_ros::StaticTransformBroadcaster br;
 	br.sendTransform(req.transform);
 	ProbMap map(req.map.map);
+	gmap_lock.lock();
 	gmap.addSubmap(map,req.transform);
-	ProbMap m=gmap.getMap();
-	mapper::ProbMap mapMsg=m.toRosMsg();
-	mapPub.publish(mapMsg);
+	gmap_lock.unlock();
+	publish=true;
 	return true;
 }
 void scanCB(const mapper::RectifiedScan::ConstPtr &msg){
@@ -31,7 +34,22 @@ int main(int argc, char** argv){
 	mapPub=n.advertise<mapper::ProbMap>("/map",1);
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	tf2_ros::TransformListener list(*buf);
+	ros::Rate rate(2);
+	ros::AsyncSpinner spinner(1);
 	ROS_INFO("Starting closure node");
-	ros::spin();
+	spinner.start();
+	while(ros::ok()){
+		rate.sleep();
+		if(publish){
+			ROS_INFO("Publishing global map...");
+			gmap_lock.lock();
+			ProbMap m=gmap.getMap();
+			gmap_lock.unlock();
+			mapper::ProbMap mapMsg=m.toRosMsg();
+			mapPub.publish(mapMsg);
+			publish=false;
+			ROS_INFO("done");
+		}
+	}
 	return 0;
 }

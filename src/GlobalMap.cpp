@@ -131,7 +131,6 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	return true;
 }
 void GlobalMap::addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform){
-	cout<<transform<<endl;
 	submaps.push_back(map);
 }
 ProbMap GlobalMap::getMap(){

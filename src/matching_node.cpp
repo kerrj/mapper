@@ -15,16 +15,22 @@
 #include "mapper/ProbMap.h"
 #include "GlobalMap.h"
 #include "mapper/Submap.h"
+#include <mutex>
 #include <vector>
 #include <iostream>
-const double MAX_DIST_PER_SUBMAP=3;
+const double MAX_DIST_PER_SUBMAP=5;
+const double SCAN_TIMEOUT=2;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;
 ros::ServiceClient addMapClient;
 ros::Publisher pub;
 double dist_travelled=0;
+ros::Time lastScanTime(0);
+mutex scan_lock;
 void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
+	scan_lock.lock();
+	lastScanTime=ros::Time::now();
 	static tf2_ros::TransformBroadcaster br;
 	ros::Time start=ros::Time::now();
 	matcher.addScan(scan,&br);
@@ -33,7 +39,6 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	if(dist_travelled>MAX_DIST_PER_SUBMAP){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
-		ros::Duration(.5).sleep();
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
 		ProbMap frozenMap=matcher.resetMap();
 		matcher.addScan(scan,&br);
@@ -47,7 +52,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	}
 	ros::Duration elapse=ros::Time::now()-start;
 	cout<<"matching: "<<elapse<<endl;
-	//decide if we want to break the map
+	scan_lock.unlock();
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;
@@ -64,6 +69,27 @@ int main(int argc, char** argv){
 	ros::Subscriber sub1=n.subscribe("/rectified_scan",50,scanCB);
 	ros::Subscriber sub2=n.subscribe("/wheel_odom",200,odomCB);
 	ROS_INFO("Starting matching node");
-	ros::spin();
+	ros::AsyncSpinner spinner(1);
+	spinner.start();
+	ros::Rate rate(1);
+	while(ros::ok()){
+		rate.sleep();
+		scan_lock.lock();
+		if(lastScanTime>ros::Time(0) && ros::Time::now()-lastScanTime>ros::Duration(SCAN_TIMEOUT)){
+			mapper::AddSubmap srv;
+			srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
+			ProbMap frozenMap=matcher.resetMap();
+			srv.request.map.map=frozenMap.toRosMsg();
+			srv.request.map.header.stamp=ros::Time::now();
+			srv.request.transform.child_frame_id=matcher.getFrameId();
+			if(addMapClient.call(srv))
+				ROS_INFO("Dumped submap");
+			else
+				ROS_WARN("Couldn't dump submap");
+			spinner.stop();
+			ros::shutdown();
+		}
+		scan_lock.unlock();
+	}
 	return 0;
 }
