@@ -17,7 +17,7 @@
 #include "mapper/Submap.h"
 #include <vector>
 #include <iostream>
-const double MAX_DIST_PER_SUBMAP=5;
+const double MAX_DIST_PER_SUBMAP=3;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;
@@ -30,14 +30,13 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	matcher.addScan(scan,&br);
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
-	ros::Duration elapse=ros::Time::now()-start;
-	cout<<"matching: "<<elapse<<endl;
-	//decide if we want to break the map
 	if(dist_travelled>MAX_DIST_PER_SUBMAP){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
-		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"wheel_base",ros::Time(0));
+		ros::Duration(.5).sleep();
+		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
 		ProbMap frozenMap=matcher.resetMap();
+		matcher.addScan(scan,&br);
 		srv.request.map.map=frozenMap.toRosMsg();
 		srv.request.map.header.stamp=ros::Time::now();
 		srv.request.transform.child_frame_id=matcher.getFrameId();
@@ -46,6 +45,9 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 		else
 			ROS_WARN("Couldn't dump submap");
 	}
+	ros::Duration elapse=ros::Time::now()-start;
+	cout<<"matching: "<<elapse<<endl;
+	//decide if we want to break the map
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;
@@ -59,8 +61,8 @@ int main(int argc, char** argv){
 	addMapClient=n.serviceClient<mapper::AddSubmap>("/add_submap");
 	tf2_ros::TransformListener list(buf);
 	pub=n.advertise<mapper::Submap>("/submap",10);
-	ros::Subscriber sub1=n.subscribe("/rectified_scan",10,scanCB);
-	ros::Subscriber sub2=n.subscribe("/wheel_odom",100,odomCB);
+	ros::Subscriber sub1=n.subscribe("/rectified_scan",50,scanCB);
+	ros::Subscriber sub2=n.subscribe("/wheel_odom",200,odomCB);
 	ROS_INFO("Starting matching node");
 	ros::spin();
 	return 0;
