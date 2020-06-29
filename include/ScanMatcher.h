@@ -29,11 +29,11 @@ public:
 	mapper::Submap toRosMsg()const;
 	ProbMap &getProbMap();
 	geometry_msgs::TransformStamped getTrans(double x,double y,double th,std::string parent_name,std::string child_name)const;
+	mapper::Odometry scanPose;//holds the delayed position of robot lining up with the scans
 private:
 	ProbMap map;
 	bool goodMeasurement(double x,double y);
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
-	mapper::Odometry scanPose;//holds the delayed position of robot lining up with the scans
 	std::list<mapper::Odometry::ConstPtr> odomQ;
 	bool fresh=true;
 	double MAX_RANGE=5.;//limit range we pay attention to measurements

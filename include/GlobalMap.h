@@ -49,12 +49,14 @@ class GlobalMap{
 public:
 	GlobalMap(std::shared_ptr<tf2_ros::Buffer> buf);
 	void addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform);
-	bool matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans);
+	bool matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans,
+			geometry_msgs::TransformStamped scan2cur);
 	//points is 2xN in robot frame, x,y,th are in the given ProbMap frame, WILL BE MODIFIED BY ALG
 	bool matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
 	ProbMap getMap();
 	void getPose(double *x, double *y, double *th, std::string frame, std::string child_frame);
 	geometry_msgs::TransformStamped getTrans(double x,double y, double th,std::string parent_name, std::string child_name)const;
+	int numMaps();
 private:
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
 	std::vector<ProbMap> submaps;

@@ -19,7 +19,7 @@
 #include <vector>
 #include <iostream>
 const double MAX_DIST_PER_SUBMAP=5;
-const double SCAN_TIMEOUT=2;
+const double SCAN_TIMEOUT=50000;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;
@@ -37,6 +37,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
 	if(dist_travelled>MAX_DIST_PER_SUBMAP){
+	//if(hypot(matcher.scanPose.x,matcher.scanPose.y)>5){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));

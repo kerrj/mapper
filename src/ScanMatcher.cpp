@@ -88,6 +88,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
 	string submapId=getFrameId();
 	geometry_msgs::TransformStamped scanTrans=getTrans(scanPose.x,scanPose.y,scanPose.th,submapId,"last_scan");
+	scanTrans.header.stamp=scan->header.stamp;
 	//now update the robot pose based on relative position to last scan
 	rPose.x=0;rPose.y=0;rPose.th=0;
 	for(auto odom:odomQ){

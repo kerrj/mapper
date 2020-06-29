@@ -67,6 +67,7 @@ double BBNode::getScore(){
 		int gridX=round(gx);
 		int gridY=round(gy);
 		if(gridX<0 || gridX>=map->numX() || gridY<0 || gridY>=map->numY())continue;
+		if((*maxMap)[gridX][gridY]<.2)continue;
 		score+=(*maxMap)[gridX][gridY];
 	}
 	return score;	
@@ -113,7 +114,6 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 			}
 		}
 	}
-	return found_match;
 	if(!found_match)return false;
 	using namespace ceres;
 	Problem problem;
@@ -127,11 +127,13 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	options.minimizer_progress_to_stdout=false;
 	Solver::Summary summary;
 	Solve(options,&problem,&summary);
+	//cout<<summary.BriefReport()<<endl;
 	//if we drift too far from matcher mark as a warning
 	*x=p[0];*y=p[1];*th=p[2];
 	return true;
 }
-bool GlobalMap::matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans){
+bool GlobalMap::matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans,
+		geometry_msgs::TransformStamped scan2cur){
 	if(submaps.size()==0)return false;
 	//choose the map whose center is closest to the scan
 	if(!tfBuffer->canTransform("last_scan","submap_0",ros::Time(0),ros::Duration(.1))){
@@ -152,31 +154,33 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStampe
 		}
 	}
 	double x,y,th;
+	//below may be a lagging scan but that's ok since the search region is large enough
 	getPose(&x,&y,&th,"submap_"+to_string(besti),"last_scan");
 	bool foundmatch=matchScan(points,&submaps[besti],&x,&y,&th);
 	if(!foundmatch)return false;
 	geometry_msgs::TransformStamped map2scan=getTrans(x,y,th,"submap_"+to_string(besti),"last_scan");
-	geometry_msgs::TransformStamped scan2cur=tfBuffer->lookupTransform("last_scan","submap_"+
-			to_string(submaps.size()),ros::Time(0));
 	tf2::Transform map2scanT;
 	tf2::convert(map2scan.transform,map2scanT);
 	tf2::Transform scan2curT;
 	tf2::convert(scan2cur.transform,scan2curT);
 	//stupid shit below
-	geometry_msgs::TransformStamped xd=tfBuffer->lookupTransform("submap_"+to_string(besti),"submap_"+to_string(submaps.size()),ros::Time(0));
+	/*geometry_msgs::TransformStamped xd=tfBuffer->lookupTransform("submap_"+to_string(besti),"submap_"+to_string(submaps.size()),ros::Time(0));
 	tf2::Transform can1=map2scanT*scan2curT;
 	geometry_msgs::Transform printt;
 	cout<<"TRANSFORMS BELOW"<<endl;
-	cout<<xd<<endl;
+	cout<<"correct constraint"<<endl;
+	cout<<xd.header.frame_id;
+	cout<<xd.child_frame_id;
+	cout<<xd.transform.translation<<endl;
 	cout<<"submap_"+to_string(besti)<<endl;
 	cout<<"submap_"+to_string(submaps.size())<<endl;
 	tf2::convert(can1,printt);
-	cout<<printt<<endl;
-	/*tf2::Transform map2cur=map2scanT*scan2curT;
+	cout<<printt.translation<<endl;*/
+	tf2::Transform map2cur=map2scanT*scan2curT;
 	tf2::convert(map2cur,trans.transform);
 	trans.header.frame_id="submap_"+to_string(besti);
 	trans.child_frame_id="submap_"+to_string(submaps.size());
-	trans.header.stamp=ros::Time::now();*/
+	trans.header.stamp=scan2cur.header.stamp;
 	return foundmatch;
 }
 void GlobalMap::addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform){
@@ -234,4 +238,7 @@ geometry_msgs::TransformStamped GlobalMap::getTrans(double x,double y,double th,
 	trans.transform.rotation.z=q.z();
 	trans.transform.rotation.w=q.w();
 	return trans;
+}
+int GlobalMap::numMaps(){
+	return submaps.size();
 }
