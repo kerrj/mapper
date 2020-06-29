@@ -28,9 +28,9 @@ public:
 	std::string getFrameId()const;
 	mapper::Submap toRosMsg()const;
 	ProbMap &getProbMap();
+	geometry_msgs::TransformStamped getTrans(double x,double y,double th,std::string parent_name,std::string child_name)const;
 private:
 	ProbMap map;
-	geometry_msgs::TransformStamped getTrans(double x,double y,double th,std::string parent_name,std::string child_name)const;
 	bool goodMeasurement(double x,double y);
 	mapper::Odometry rPose;//integrates odometry/saves last estimate
 	mapper::Odometry scanPose;//holds the delayed position of robot lining up with the scans

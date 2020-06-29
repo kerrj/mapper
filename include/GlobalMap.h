@@ -6,6 +6,8 @@
 #include <cmath>
 #include "tf2_ros/transform_listener.h"
 #include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Transform.h"
+#include "tf2/convert.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "ros/ros.h"
 #include "geometry_msgs/Transform.h"
@@ -18,6 +20,7 @@
 #include "Eigen/Dense"
 #include "geometry_msgs/PointStamped.h"
 #include "Eigen/Geometry"
+#include <limits>
 using namespace std;
 class BBNode{
 public:
@@ -46,10 +49,12 @@ class GlobalMap{
 public:
 	GlobalMap(std::shared_ptr<tf2_ros::Buffer> buf);
 	void addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform);
+	bool matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans);
 	//points is 2xN in robot frame, x,y,th are in the given ProbMap frame, WILL BE MODIFIED BY ALG
 	bool matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
 	ProbMap getMap();
 	void getPose(double *x, double *y, double *th, std::string frame, std::string child_frame);
+	geometry_msgs::TransformStamped getTrans(double x,double y, double th,std::string parent_name, std::string child_name)const;
 private:
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
 	std::vector<ProbMap> submaps;
