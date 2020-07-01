@@ -213,17 +213,23 @@ ProbMap GlobalMap::getMap(){
 	}
 	for(int i=1;i<submaps.size();i++){
 		m=submaps[i];
+		Eigen::Rotation2D<double> R(poses[i][2]);
+		Eigen::Vector2d t(poses[i][0],poses[i][1]);
 		for(int xi=0;xi<m.numX();xi++){
 			for(int yi=0;yi<m.numY();yi++){
 				m.grid2Map(xi,yi,&mx,&my);
-				geometry_msgs::PointStamped p;
+				/*geometry_msgs::PointStamped p;
 				p.point.x=mx;
 				p.point.y=my;
 				p.point.z=0;
 				p.header.frame_id="submap_"+to_string(i);
 				tfBuffer->transform(p,p,"submap_0");
 				map.resize(p.point.x,p.point.y);
-				map.map2Grid(p.point.x,p.point.y,&gx,&gy);
+				map.map2Grid(p.point.x,p.point.y,&gx,&gy);*/
+				Eigen::Vector2d mp(mx,my);
+				Eigen::Vector2d s0frame=R*mp+t;
+				map.resize(s0frame(0),s0frame(1));
+				map.map2Grid(s0frame(0),s0frame(1),&gx,&gy);
 				int gridx=round(gx);
 				int gridy=round(gy);
 				double newprob=max(m.getProb(xi,yi,true),map.getProb(gridx,gridy,true));
@@ -267,24 +273,11 @@ void GlobalMap::solve(){
 	ceres::Solver::Options options;
 	options.num_threads=4;
 	options.linear_solver_type=ceres::DENSE_QR;
-	options.max_num_iterations=200;
+	options.use_nonmonotonic_steps=true;
+	options.max_num_iterations=250;
 	ceres::Solver::Summary sum;
-	/*cout<<"map Poses before ceres"<<endl;
-	for(auto p:poses){
-		for(auto d:p){
-			cout<<d<<" ";
-		}
-		cout<<endl;
-	}*/
 	ceres::Solve(options,&problem,&sum);
 	cout<<sum.BriefReport()<<endl;
-	/*cout<<"map Poses"<<endl;
-	for(auto p:poses){
-		for(auto d:p){
-			cout<<d<<" ";
-		}
-		cout<<endl;
-	}*/
 }
 void GlobalMap::broadcastPoses(tf2_ros::StaticTransformBroadcaster &br){
 	for(int i=1;i<poses.size();i++){

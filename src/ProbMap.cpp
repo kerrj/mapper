@@ -115,7 +115,7 @@ void ProbMap::resize(double x,double y){
 	map2Grid(x,y,&gx,&gy);
 	int gridX=round(gx);
 	int gridY=round(gy);
-	int pad=max(pad,0-gridY);
+	int pad=max(0,0-gridY);
 	pad=max(pad,0-gridX);
 	pad=max(pad,gridX-numX()+1);
 	pad=max(pad,gridY-numY()+1);

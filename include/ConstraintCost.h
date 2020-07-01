@@ -7,10 +7,6 @@ class ConstraintCost{
 public:
 	ConstraintCost(double x,double y,double th,Eigen::Matrix3d covariance){
 		invCovariance=covariance.inverse();
-		std::cout<<"invcov"<<std::endl;
-		std::cout<<invCovariance<<std::endl;
-		std::cout<<"relative pose"<<std::endl;
-		std::cout<<x<<" , "<<y<<" , "<<th<<std::endl; 
 		this->x=x;
 		this->y=y;
 		this->th=th;
@@ -51,10 +47,6 @@ public:
 		this->x=x;
 		this->y=y;
 		this->th=th;
-		std::cout<<"invcov"<<std::endl;
-		std::cout<<invCovariance<<std::endl;
-		std::cout<<"relative pose"<<std::endl;
-		std::cout<<x<<" , "<<y<<" , "<<th<<std::endl; 
 	}
 	template<typename T>
 	T angleDiff(T t1,T t2)const{

@@ -39,6 +39,8 @@ public:
 	double getProb(int x,int y,bool observability=false) const;
 	void setProb(int x,int y,double p);
 	static constexpr double CELL_SIZE=.03;
+	static constexpr double PROB_MAX=.98;
+	static constexpr double PROB_MIN=.05;
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
@@ -54,9 +56,7 @@ private:
 	static constexpr prob_t NO_INFO=50;//NEVER MAKE THIS 0 since its reserved for keeping track of observed places
 	static constexpr double CELL_RES=1/CELL_SIZE;
 	static constexpr double DFLT_SIZE=10;
-	static constexpr double PROB_MAX=.98;
-	static constexpr double PROB_MIN=.05;
-	static constexpr double MIN_PAD=2.;
+	static constexpr double MIN_PAD=5.;
 	static constexpr double P_HIT=.52;
 	static constexpr double P_MISS=.48;
 };

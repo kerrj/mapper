@@ -61,7 +61,7 @@ int main(int argc, char** argv){
 			gmap.addSubmap(map);
 			double x,y,th;
 			gmap.getPose(&x,&y,&th,lastReq.transform);
-			Eigen::DiagonalMatrix<double,3> covariance(.15,.15,.1);
+			Eigen::DiagonalMatrix<double,3> covariance(.1,.1,.1);
 			gmap.addConstraint(gmap.numMaps()-1,gmap.numMaps(),x,y,th,covariance);
 			gmap.solve();
 			gmap.broadcastPoses(br);

@@ -19,7 +19,7 @@
 #include <vector>
 #include <iostream>
 const double MAX_DIST_PER_SUBMAP=5;
-const double SCAN_TIMEOUT=5;
+const double SCAN_TIMEOUT=2;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;
