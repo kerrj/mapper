@@ -67,7 +67,6 @@ double BBNode::getScore(){
 		int gridX=round(gx);
 		int gridY=round(gy);
 		if(gridX<0 || gridX>=map->numX() || gridY<0 || gridY>=map->numY())continue;
-		if((*maxMap)[gridX][gridY]<.2)continue;
 		score+=(*maxMap)[gridX][gridY];
 	}
 	return score;	
@@ -80,6 +79,9 @@ GlobalMap::GlobalMap(shared_ptr<tf2_ros::Buffer> buf){
 }
 void GlobalMap::getPose(double *x, double *y, double *th, string frame, string child_frame){
 	geometry_msgs::TransformStamped t=tfBuffer->lookupTransform(frame,child_frame,ros::Time(0));
+	getPose(x,y,th,t);
+}
+void GlobalMap::getPose(double *x,double *y,double *th, geometry_msgs::TransformStamped t){
 	*x=t.transform.translation.x;
 	*y=t.transform.translation.y;
 	tf2::Quaternion q;
@@ -93,7 +95,7 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	const double T_RES=.03;
 	const double R_RES=.006;//increment for rotation
 	const double T_WINDOW=2;//meter
-	const double R_WINDOW=.3;//rad
+	const double R_WINDOW=.4;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
 	double best_score=points->cols()*.6;
 	bool found_match=false;
@@ -183,8 +185,16 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStampe
 	trans.header.stamp=scan2cur.header.stamp;
 	return foundmatch;
 }
-void GlobalMap::addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform){
+void GlobalMap::addSubmap(ProbMap map){
 	submaps.push_back(map);
+	if(submaps.size()==1){
+		poses.emplace_back(3,0.);
+	}
+	double x,y,th;
+	if(!tfBuffer->canTransform("submap_0","submap_"+to_string(numMaps()),ros::Time(0),ros::Duration(.1))){throw runtime_error("couldnt find transform in addsubmap");}
+	getPose(&x,&y,&th,"submap_0","submap_"+to_string(numMaps()));
+	vector<double> pose={x,y,th};
+	poses.push_back(pose);
 }
 ProbMap GlobalMap::getMap(){
 	//this is janky for now to test things
@@ -241,4 +251,45 @@ geometry_msgs::TransformStamped GlobalMap::getTrans(double x,double y,double th,
 }
 int GlobalMap::numMaps(){
 	return submaps.size();
+}
+void GlobalMap::addConstraint(int parent,int child, double x,double y,double th,Eigen::Matrix3d covariance){
+	if(parent==0){
+		ceres::CostFunction *cost_fn=new ceres::AutoDiffCostFunction<ConstraintCostOrigin,1,3>(
+				new ConstraintCostOrigin(x,y,th,covariance));
+		problem.AddResidualBlock(cost_fn,NULL,(poses[child]).data());
+	}else{
+		ceres::CostFunction *cost_fn=new ceres::AutoDiffCostFunction<ConstraintCost,1,3,3>(
+			new ConstraintCost(x,y,th,covariance));
+		problem.AddResidualBlock(cost_fn,NULL,(poses[parent]).data(),(poses[child]).data());
+	}
+}
+void GlobalMap::solve(){
+	ceres::Solver::Options options;
+	options.num_threads=4;
+	options.linear_solver_type=ceres::DENSE_QR;
+	options.max_num_iterations=200;
+	ceres::Solver::Summary sum;
+	/*cout<<"map Poses before ceres"<<endl;
+	for(auto p:poses){
+		for(auto d:p){
+			cout<<d<<" ";
+		}
+		cout<<endl;
+	}*/
+	ceres::Solve(options,&problem,&sum);
+	cout<<sum.BriefReport()<<endl;
+	/*cout<<"map Poses"<<endl;
+	for(auto p:poses){
+		for(auto d:p){
+			cout<<d<<" ";
+		}
+		cout<<endl;
+	}*/
+}
+void GlobalMap::broadcastPoses(tf2_ros::StaticTransformBroadcaster &br){
+	for(int i=1;i<poses.size();i++){
+		vector<double> p=poses[i];
+		geometry_msgs::TransformStamped t=getTrans(p[0],p[1],p[2],"submap_0","submap_"+to_string(i));
+		br.sendTransform(t);
+	}
 }

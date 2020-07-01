@@ -18,7 +18,6 @@ ros::Publisher mapPub;
 mapper::AddSubmap::Request lastReq;
 mapper::RectifiedScan::ConstPtr lastScan;
 geometry_msgs::TransformStamped lastScanTrans;
-vector<geometry_msgs::TransformStamped> constraints;
 bool add=false;
 bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response  &res){
 	reqlock.lock();
@@ -54,19 +53,24 @@ int main(int argc, char** argv){
 	spinner.start();
 	while(ros::ok()){
 		rate.sleep();
-		ros::spinOnce();
 		bool publish=false;
 		if(add){
 			reqlock.lock();
-			br.sendTransform(lastReq.transform);
+			br.sendTransform(lastReq.transform);//new submap transform
 			ProbMap map(lastReq.map.map);
-			gmap.addSubmap(map,lastReq.transform);
+			gmap.addSubmap(map);
+			double x,y,th;
+			gmap.getPose(&x,&y,&th,lastReq.transform);
+			Eigen::DiagonalMatrix<double,3> covariance(.15,.15,.1);
+			gmap.addConstraint(gmap.numMaps()-1,gmap.numMaps(),x,y,th,covariance);
+			gmap.solve();
+			gmap.broadcastPoses(br);
 			add=false;
 			reqlock.unlock();
 			publish=true;
-			constraints.clear();
 			ROS_INFO("Added submap");
 		}
+		ros::spinOnce();
 		if(lastScan!=nullptr){
 			//do the matching to the map here
 			vector<float> xs;
@@ -84,9 +88,16 @@ int main(int argc, char** argv){
 				geometry_msgs::TransformStamped match;
 				bool found=gmap.matchScan(&points,match,lastScanTrans);
 				if(found){
-					constraints.push_back(match);
 					ROS_INFO("Adding match from %s to %s",match.header.frame_id.c_str(),
 							match.child_frame_id.c_str());
+					double x,y,th;
+					gmap.getPose(&x,&y,&th,match);
+					Eigen::DiagonalMatrix<double,3> covariance(.02,.02,.017);
+					int parent=atoi(match.header.frame_id.c_str()+7);
+					int child=atoi(match.child_frame_id.c_str()+7);
+					gmap.addConstraint(parent,child,x,y,th,covariance);
+					gmap.solve();
+					gmap.broadcastPoses(br);
 				}else{
 					ROS_INFO("No match found");
 				}

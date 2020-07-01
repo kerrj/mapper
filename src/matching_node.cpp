@@ -19,7 +19,7 @@
 #include <vector>
 #include <iostream>
 const double MAX_DIST_PER_SUBMAP=5;
-const double SCAN_TIMEOUT=50000;
+const double SCAN_TIMEOUT=5;
 using namespace std;
 ScanMatcher matcher;
 tf2_ros::Buffer buf;
@@ -58,10 +58,10 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;
 	matcher.addOdom(odom,&br);
-	dist_travelled+=odom->x;
+	dist_travelled+=abs(odom->x);
 }
 int main(int argc, char** argv){
-	google::InitGoogleLogging(argv[0]);
+	//google::InitGoogleLogging(argv[0]);
 	ros::init(argc,argv,"local_matching");
 	ros::NodeHandle n;
 	addMapClient=n.serviceClient<mapper::AddSubmap>("/add_submap");

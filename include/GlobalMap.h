@@ -5,6 +5,7 @@
 #include <list>
 #include <cmath>
 #include "tf2_ros/transform_listener.h"
+#include "tf2_ros/static_transform_broadcaster.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2/convert.h"
@@ -20,6 +21,7 @@
 #include "Eigen/Dense"
 #include "geometry_msgs/PointStamped.h"
 #include "Eigen/Geometry"
+#include "ConstraintCost.h"
 #include <limits>
 using namespace std;
 class BBNode{
@@ -48,17 +50,23 @@ private:
 class GlobalMap{
 public:
 	GlobalMap(std::shared_ptr<tf2_ros::Buffer> buf);
-	void addSubmap(ProbMap map,geometry_msgs::TransformStamped &transform);
+	void addSubmap(ProbMap map);
 	bool matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStamped &trans,
 			geometry_msgs::TransformStamped scan2cur);
 	//points is 2xN in robot frame, x,y,th are in the given ProbMap frame, WILL BE MODIFIED BY ALG
 	bool matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th);
 	ProbMap getMap();
 	void getPose(double *x, double *y, double *th, std::string frame, std::string child_frame);
+	void getPose(double *x, double *y, double *th,geometry_msgs::TransformStamped t);
 	geometry_msgs::TransformStamped getTrans(double x,double y, double th,std::string parent_name, std::string child_name)const;
 	int numMaps();
+	void addConstraint(int parent, int child, double x,double y,double th,Eigen::Matrix3d covariance);
+	void solve();
+	void broadcastPoses(tf2_ros::StaticTransformBroadcaster &br);
 private:
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
 	std::vector<ProbMap> submaps;
+	std::vector<std::vector<double> > poses;
+	ceres::Problem problem;
 };
 #endif

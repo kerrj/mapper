@@ -291,6 +291,8 @@ vector<vector<float> > *ProbMap::getMaxMap(int height){
 		for(int y=0;y<numY();y++){
 			RollingMax<float> r(wSize);
 			for(int x=numX()-1;x>=0;x--){
+				double v=maxMap[x][y];
+				if(v<=.2)v=0;
 				r.add(maxMap[x][y]);
 				maxMap[x][y]=r.getVal();
 			}
