@@ -29,7 +29,7 @@ bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response  &res)
 }
 void scanCB(const mapper::RectifiedScan::ConstPtr &msg){
 	lastScan=msg;
-	if(buf->canTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,ros::Duration(.1))){
+	if(buf->canTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,ros::Duration(.15))){
 		lastScanTrans=buf->lookupTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,
 				ros::Duration(0));
 	}else{
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	tf2_ros::StaticTransformBroadcaster br;
 	tf2_ros::TransformListener list(*buf);
-	ros::Rate rate(1);
+	ros::Rate rate(2);
 	ros::AsyncSpinner spinner(1,&serviceQueue);
 	ROS_INFO("Starting closure node");
 	spinner.start();

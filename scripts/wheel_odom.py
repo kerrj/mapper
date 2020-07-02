@@ -12,7 +12,7 @@ pose will result in a final odometry estimate. Can start at 0 at any time.
 WHEEL_RAD=.04
 WHEEL_SEP=.1978
 rospy.init_node('wheel_odom')
-pub=rospy.Publisher('wheel_odom',Odometry,queue_size=10)
+pub=rospy.Publisher('wheel_odom',Odometry,queue_size=100)
 odom=Odometry()
 odom.x=0;odom.y=0;odom.th=0
 def enc_cb(encMsg):

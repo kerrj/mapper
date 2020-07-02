@@ -61,7 +61,7 @@ public:
 		for(int i=0;i<scan->ranges.size();i++){
 			float th=scan->intensities[i];
 			float d=scan->ranges[i];
-			if(isnan(d) || isinf(d) || d<.15)continue;
+			if(isnan(d) || isinf(d) || d<.12)continue;
 			Pose t=interp(poses,1-i/((float)scan->ranges.size()));
 			Rotation2D<float> R(t.th);
 			Vector2f original(d*cos(th),d*sin(th));

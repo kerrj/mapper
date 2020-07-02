@@ -33,10 +33,10 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	lastScanTime=ros::Time::now();
 	static tf2_ros::TransformBroadcaster br;
 	ros::Time start=ros::Time::now();
-	matcher.addScan(scan,&br);
+	bool reset=matcher.addScan(scan,&br) && dist_travelled>.5;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
-	if(dist_travelled>MAX_DIST_PER_SUBMAP){
+	if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
 	//if(hypot(matcher.scanPose.x,matcher.scanPose.y)>5){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
@@ -87,6 +87,7 @@ int main(int argc, char** argv){
 				ROS_INFO("Dumped submap");
 			else
 				ROS_WARN("Couldn't dump submap");
+			ROS_WARN("No scan by local matcher in a while, shutting down node");
 			spinner.stop();
 			ros::shutdown();
 		}

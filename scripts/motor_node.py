@@ -16,7 +16,7 @@ COUNTS_PER_RAD=COUNTS_PER_REV/(2*pi)
 ADR=0x80
 MAX_SPEED=12#units in radians
 TIMEOUT=1
-RATE=75
+RATE=50
 rospy.init_node("motor_node")
 rc=Roboclaw('/dev/ttyACM0',115200)
 rc.Open()

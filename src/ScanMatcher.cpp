@@ -33,6 +33,7 @@ ProbMap ScanMatcher::resetMap(){
 	ProbMap cropped(map);
 	cropped.crop();
 	map=ProbMap();
+	lastScanCost=100000000;
 	fresh=true;
 	id++;
 	return cropped;
@@ -48,10 +49,10 @@ void ScanMatcher::addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::Transf
 bool ScanMatcher::goodMeasurement(double x,double y){
 	if(isnan(x) || isinf(x))return false;
 	double h=hypot(x,y);
-	if(h<.15 || h>MAX_RANGE)return false;
+	if(h<.12 || h>MAX_RANGE)return false;
 	return true;
 }
-void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::TransformBroadcaster* br){
+bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::TransformBroadcaster* br){
 	//integrate the relevant odom messages bringing us up to the scan time
 	while(odomQ.size()>0 && odomQ.front()->header.stamp<scan->header.stamp){
 		doRKUpdate(scanPose,odomQ.front());
@@ -65,6 +66,7 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		xs.push_back(scan->xs[i]);
 		ys.push_back(scan->ys[i]);
 	}
+	bool jumped=false;
 	if(!fresh){
 		//do the pose optimization and set rx,ry,rth
 		Problem problem;
@@ -77,15 +79,24 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		options.minimizer_progress_to_stdout=false;
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
+		//lower cost is better
+		if(summary.final_cost>1.4*lastScanCost){
+			cout<<"jump detected"<<endl;
+			cout<<lastScanCost<<" -> "<<summary.final_cost<<endl;
+			jumped=true;
+		}
+		lastScanCost=summary.final_cost;
 		//std::cout<<summary.BriefReport()<<endl;
 	}
 	fresh=false;
+	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
 	//add all the observations using the fine tuned pose
-	for(int i=0;i<xs.size();i++){
-		map.addObservation(p[0],p[1],p[2],xs[i],ys[i]);
+	if(!jumped){
+		for(int i=0;i<xs.size();i++){
+			map.addObservation(p[0],p[1],p[2],xs[i],ys[i]);
+		}
 	}
 	//update the pose given the match
-	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
 	string submapId=getFrameId();
 	geometry_msgs::TransformStamped scanTrans=getTrans(scanPose.x,scanPose.y,scanPose.th,submapId,"last_scan");
 	scanTrans.header.stamp=scan->header.stamp;
@@ -95,12 +106,9 @@ void ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		doRKUpdate(rPose,odom);
 	}
 	geometry_msgs::TransformStamped botTrans=getTrans(rPose.x,rPose.y,rPose.th,"last_scan","wheel_base");
-	if(br==nullptr){
-		ROS_WARN("No transform broadcaster given to addScan, skipping publishing poses");
-		return;
-	}
 	br->sendTransform(scanTrans);
 	br->sendTransform(botTrans);
+	return jumped;
 }
 ProbMap &ScanMatcher::getProbMap(){
 	return map;

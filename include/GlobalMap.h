@@ -68,5 +68,6 @@ private:
 	std::vector<ProbMap> submaps;
 	std::vector<std::vector<double> > poses;
 	ceres::Problem problem;
+	static constexpr double ZERO_THRESH=.2;
 };
 #endif

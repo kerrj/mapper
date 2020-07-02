@@ -23,7 +23,7 @@ class ScanMatcher{
 public:
 	ScanMatcher();
 	ProbMap resetMap();
-	void addScan(const mapper::RectifiedScan::ConstPtr& scan,tf2_ros::TransformBroadcaster* br);
+	bool addScan(const mapper::RectifiedScan::ConstPtr& scan,tf2_ros::TransformBroadcaster* br);
 	void addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br);
 	std::string getFrameId()const;
 	mapper::Submap toRosMsg()const;
@@ -38,5 +38,6 @@ private:
 	bool fresh=true;
 	double MAX_RANGE=5.;//limit range we pay attention to measurements
 	int id;
+	double lastScanCost=10000000;
 };
 #endif

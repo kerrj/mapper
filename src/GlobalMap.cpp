@@ -208,7 +208,9 @@ ProbMap GlobalMap::getMap(){
 			map.map2Grid(mx,my,&gx,&gy);
 			int gridx=round(gx);
 			int gridy=round(gy);
-			map.setProb(gridx,gridy,m.getProb(xi,yi,true));
+			double newprob=m.getProb(xi,yi,true);
+			if(newprob<ZERO_THRESH)newprob=0;
+			map.setProb(gridx,gridy,newprob);
 		}
 	}
 	for(int i=1;i<submaps.size();i++){
@@ -218,14 +220,6 @@ ProbMap GlobalMap::getMap(){
 		for(int xi=0;xi<m.numX();xi++){
 			for(int yi=0;yi<m.numY();yi++){
 				m.grid2Map(xi,yi,&mx,&my);
-				/*geometry_msgs::PointStamped p;
-				p.point.x=mx;
-				p.point.y=my;
-				p.point.z=0;
-				p.header.frame_id="submap_"+to_string(i);
-				tfBuffer->transform(p,p,"submap_0");
-				map.resize(p.point.x,p.point.y);
-				map.map2Grid(p.point.x,p.point.y,&gx,&gy);*/
 				Eigen::Vector2d mp(mx,my);
 				Eigen::Vector2d s0frame=R*mp+t;
 				map.resize(s0frame(0),s0frame(1));
@@ -233,6 +227,7 @@ ProbMap GlobalMap::getMap(){
 				int gridx=round(gx);
 				int gridy=round(gy);
 				double newprob=max(m.getProb(xi,yi,true),map.getProb(gridx,gridy,true));
+				if(newprob<ZERO_THRESH)newprob=0;
 				map.setProb(gridx,gridy,newprob);
 			}
 		}
