@@ -41,6 +41,8 @@ public:
 	static constexpr double CELL_SIZE=.03;
 	static constexpr double PROB_MAX=.98;
 	static constexpr double PROB_MIN=.05;
+	void incScans(double rx,double ry);
+	void getCOM(double &x,double &y);
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
@@ -52,7 +54,8 @@ private:
 	double clamp(double val,double minval,double maxval)const;
 	std::shared_ptr<std::vector<std::vector<prob_t> > > grid;
 	std::vector<std::vector<std::vector<float> > > maxes;
-	double map_x,map_y;
+	double map_x,map_y,sumX,sumY;
+	int numScans;
 	static constexpr prob_t NO_INFO=50;//NEVER MAKE THIS 0 since its reserved for keeping track of observed places
 	static constexpr double CELL_RES=1/CELL_SIZE;
 	static constexpr double DFLT_SIZE=10;

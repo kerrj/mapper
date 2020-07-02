@@ -4,21 +4,38 @@ ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
 	grid=make_shared<vector<vector<prob_t> > >(num_cells,vector<prob_t>(num_cells,0));
 	map_x=map_y=(num_cells/2)*CELL_SIZE;
+	sumX=sumY=0;
+	numScans=0;
 }
 ProbMap::ProbMap(const ProbMap& old){
 	grid=old.grid;
 	map_x=old.map_x;
 	map_y=old.map_y;
+	sumX=old.sumX;
+	sumY=old.sumY;
+	numScans=old.numScans;
 	maxes=old.maxes;
 }
 ProbMap::ProbMap(mapper::ProbMap msg){
 	map_x=msg.originX;
 	map_y=msg.originY;
+	sumX=msg.sumX;
+	numScans=msg.numScans;
+	sumY=msg.sumY;
 	grid=make_shared<vector<vector<prob_t> > >();
 	for(int i=0;i<msg.numX;i++){
 		auto it=msg.data.begin()+msg.numY*i;
 		grid->emplace_back(it,it+msg.numY+1);
 	}
+}
+void ProbMap::incScans(double rx,double ry){
+	numScans++;
+	sumX+=rx;
+	sumY+=ry;
+}
+void ProbMap::getCOM(double &x,double &y){
+	x=sumX/numScans;
+	y=sumY/numScans;
 }
 void ProbMap::crop(){
 	//shrinks the map to the size of the observed region
@@ -267,6 +284,9 @@ mapper::ProbMap ProbMap::toRosMsg()const{
 	msg.numY=numY();
 	msg.originX=map_x;
 	msg.originY=map_y;
+	msg.sumX=sumX;
+	msg.sumY=sumY;
+	msg.numScans=numScans;
 	msg.cellSize=CELL_SIZE;
 	vector<uint8_t> data;
 	for(int i=0;i<numX();i++){

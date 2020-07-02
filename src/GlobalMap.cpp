@@ -149,7 +149,9 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,geometry_msgs::TransformStampe
 	geometry_msgs::PointStamped scanTrans;
 	for(int i=0;i<submaps.size();i++){
 		tfBuffer->transform(scanOrigin,scanTrans,"submap_"+to_string(i));
-		double d=hypot(scanTrans.point.x,scanTrans.point.y);
+		double comx,comy;
+		submaps[i].getCOM(comx,comy);
+		double d=hypot(scanTrans.point.x-comx,scanTrans.point.y-comy);
 		if(d<bestdist){
 			bestdist=d;
 			besti=i;
@@ -272,7 +274,7 @@ void GlobalMap::solve(){
 	options.max_num_iterations=250;
 	ceres::Solver::Summary sum;
 	ceres::Solve(options,&problem,&sum);
-	cout<<sum.BriefReport()<<endl;
+	//cout<<sum.BriefReport()<<endl;
 }
 void GlobalMap::broadcastPoses(tf2_ros::StaticTransformBroadcaster &br){
 	for(int i=1;i<poses.size();i++){

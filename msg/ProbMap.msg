@@ -2,5 +2,8 @@ int32 numX
 int32 numY
 float64 originX
 float64 originY
+float64 sumX
+float64 sumY
+int32 numScans
 float64 cellSize
 uint8[] data

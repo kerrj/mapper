@@ -92,6 +92,7 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
 	//add all the observations using the fine tuned pose
 	if(!jumped){
+		map.incScans(p[0],p[1]);
 		for(int i=0;i<xs.size();i++){
 			map.addObservation(p[0],p[1],p[2],xs[i],ys[i]);
 		}
