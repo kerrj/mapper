@@ -94,10 +94,10 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	//const double T_RES=map->CELL_SIZE;//increment for translation
 	const double T_RES=.03;
 	const double R_RES=.006;//increment for rotation
-	const double T_WINDOW=2;//meter
+	const double T_WINDOW=1.5;//meter
 	const double R_WINDOW=.4;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
-	double best_score=points->cols()*.6;
+	double best_score=points->cols()*.55;
 	bool found_match=false;
 	while(!stack.empty()){
 		BBNode top=stack.back();
@@ -121,7 +121,7 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	Problem problem;
 	CostFunction *cost_fn=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(map,points),points->cols());
 	double p[]={*x,*y,*th};
-	problem.AddResidualBlock(cost_fn,NULL,p);
+	problem.AddResidualBlock(cost_fn,new CauchyLoss(.5),p);
 	Solver::Options options;
 	options.num_threads=4;
 	options.linear_solver_type=DENSE_QR;
@@ -221,6 +221,8 @@ ProbMap GlobalMap::getMap(){
 		Eigen::Vector2d t(poses[i][0],poses[i][1]);
 		for(int xi=0;xi<m.numX();xi++){
 			for(int yi=0;yi<m.numY();yi++){
+				double mapprob=m.getProb(xi,yi,true);
+				if(mapprob<ZERO_THRESH)continue;
 				m.grid2Map(xi,yi,&mx,&my);
 				Eigen::Vector2d mp(mx,my);
 				Eigen::Vector2d s0frame=R*mp+t;
@@ -228,7 +230,7 @@ ProbMap GlobalMap::getMap(){
 				map.map2Grid(s0frame(0),s0frame(1),&gx,&gy);
 				int gridx=round(gx);
 				int gridy=round(gy);
-				double newprob=max(m.getProb(xi,yi,true),map.getProb(gridx,gridy,true));
+				double newprob=max(mapprob,map.getProb(gridx,gridy,true));
 				if(newprob<ZERO_THRESH)newprob=0;
 				map.setProb(gridx,gridy,newprob);
 			}

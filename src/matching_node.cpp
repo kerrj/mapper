@@ -33,11 +33,11 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	lastScanTime=ros::Time::now();
 	static tf2_ros::TransformBroadcaster br;
 	ros::Time start=ros::Time::now();
-	bool reset=matcher.addScan(scan,&br) && dist_travelled>.5;
+	bool reset=matcher.addScan(scan,&br) && dist_travelled>1;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
-	if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
-	//if(hypot(matcher.scanPose.x,matcher.scanPose.y)>5){
+	//if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
+	if(hypot(matcher.scanPose.x,matcher.scanPose.y)>5 || reset){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
