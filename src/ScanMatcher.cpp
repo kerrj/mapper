@@ -61,7 +61,7 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	double p[]={scanPose.x,scanPose.y,scanPose.th};
 	vector<double> xs;
 	vector<double> ys;
-	for(int i=0;i<scan->xs.size();i++){
+	for(int i=0;i<scan->xs.size();i+=3){
 		if(!goodMeasurement(scan->xs[i],scan->ys[i]))continue;
 		xs.push_back(scan->xs[i]);
 		ys.push_back(scan->ys[i]);
@@ -74,11 +74,13 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		problem.AddResidualBlock(cost_fun,NULL,p);
 		Solver::Options options;
 		options.num_threads=4;
+		options.max_num_iterations=25;
 		options.linear_solver_type=DENSE_QR;
 		options.use_nonmonotonic_steps=true;
 		options.minimizer_progress_to_stdout=false;
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
+		//cout<<"pre: "<<summary.preprocessor_time_in_seconds<<" min: "<<summary.minimizer_time_in_seconds<<" post: "<<summary.postprocessor_time_in_seconds<<" tot: "<<summary.total_time_in_seconds<<endl;
 		//lower cost is better
 		if(summary.final_cost>1.4*lastScanCost){
 			cout<<"jump detected"<<endl;
@@ -93,8 +95,9 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	//add all the observations using the fine tuned pose
 	if(!jumped){
 		map.incScans(p[0],p[1]);
-		for(int i=0;i<xs.size();i++){
-			map.addObservation(p[0],p[1],p[2],xs[i],ys[i]);
+		for(int i=0;i<scan->xs.size();i++){
+			if(!goodMeasurement(scan->xs[i],scan->ys[i]))continue;
+			map.addObservation(p[0],p[1],p[2],scan->xs[i],scan->ys[i]);
 		}
 	}
 	//update the pose given the match

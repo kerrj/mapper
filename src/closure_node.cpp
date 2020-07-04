@@ -29,7 +29,7 @@ bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response  &res)
 }
 void scanCB(const mapper::RectifiedScan::ConstPtr &msg){
 	lastScan=msg;
-	if(buf->canTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,ros::Duration(.3))){
+	if(buf->canTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,ros::Duration(.5))){
 		lastScanTrans=buf->lookupTransform("last_scan","submap_"+to_string(gmap.numMaps()),msg->header.stamp,
 				ros::Duration(0));
 	}else{

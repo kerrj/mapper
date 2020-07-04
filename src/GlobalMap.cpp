@@ -123,7 +123,7 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	double p[]={*x,*y,*th};
 	problem.AddResidualBlock(cost_fn,new CauchyLoss(.5),p);
 	Solver::Options options;
-	options.num_threads=4;
+	options.num_threads=2;
 	options.linear_solver_type=DENSE_QR;
 	options.use_nonmonotonic_steps=true;
 	options.minimizer_progress_to_stdout=false;
@@ -270,10 +270,10 @@ void GlobalMap::addConstraint(int parent,int child, double x,double y,double th,
 }
 void GlobalMap::solve(){
 	ceres::Solver::Options options;
-	options.num_threads=4;
+	options.num_threads=2;
 	options.linear_solver_type=ceres::DENSE_QR;
 	options.use_nonmonotonic_steps=true;
-	options.max_num_iterations=250;
+	options.max_num_iterations=200;
 	ceres::Solver::Summary sum;
 	ceres::Solve(options,&problem,&sum);
 	//cout<<sum.BriefReport()<<endl;

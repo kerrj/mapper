@@ -29,15 +29,18 @@ double dist_travelled=0;
 ros::Time lastScanTime(0);
 mutex scan_lock;
 void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
+	static int num=0;
+	static double sum=0;
 	scan_lock.lock();
 	lastScanTime=ros::Time::now();
 	static tf2_ros::TransformBroadcaster br;
 	ros::Time start=ros::Time::now();
 	bool reset=matcher.addScan(scan,&br) && dist_travelled>1;
+	ros::Duration elapse=ros::Time::now()-start;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
 	//if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
-	if(hypot(matcher.scanPose.x,matcher.scanPose.y)>5 || reset){
+	if(hypot(matcher.scanPose.x,matcher.scanPose.y)>MAX_DIST_PER_SUBMAP || reset){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
@@ -51,9 +54,11 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 		else
 			ROS_WARN("Couldn't dump submap");
 	}
-	ros::Duration elapse=ros::Time::now()-start;
-	cout<<"matching: "<<elapse<<endl;
 	scan_lock.unlock();
+	sum+=elapse.toSec();
+	num++;
+	//cout<<"matching ite: "<<elapse<<endl;
+	cout<<"matching avg: "<<sum/num<<endl;
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;
@@ -73,8 +78,10 @@ int main(int argc, char** argv){
 	ros::AsyncSpinner spinner(1);
 	spinner.start();
 	ros::Rate rate(1);
+	bool shutdown=false;
 	while(ros::ok()){
 		rate.sleep();
+		if(shutdown)continue;
 		scan_lock.lock();
 		if(lastScanTime>ros::Time(0) && ros::Time::now()-lastScanTime>ros::Duration(SCAN_TIMEOUT)){
 			mapper::AddSubmap srv;
@@ -89,7 +96,7 @@ int main(int argc, char** argv){
 				ROS_WARN("Couldn't dump submap");
 			ROS_WARN("No scan by local matcher in a while, shutting down node");
 			spinner.stop();
-			ros::shutdown();
+			shutdown=true;
 		}
 		scan_lock.unlock();
 	}
