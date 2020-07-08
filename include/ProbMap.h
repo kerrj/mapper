@@ -36,8 +36,10 @@ public:
 	int numY()const;
 	double getProb(prob_t p)const;
 	prob_t getProbT(double p)const;
+	prob_t getProbT(int x,int y,bool observability=false)const;
 	double getProb(int x,int y,bool observability=false) const;
 	void setProb(int x,int y,double p);
+	void setProbT(int x,int y,prob_t p);
 	static constexpr double CELL_SIZE=.03;
 	static constexpr double PROB_MAX=.98;
 	static constexpr double PROB_MIN=.05;

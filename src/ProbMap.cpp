@@ -77,8 +77,15 @@ void ProbMap::GetValue(int x,int y,double* f)const{
 	*f=getProb(x,y);
 }
 double ProbMap::getProb(prob_t p)const{
-	if(p==0)p=NO_INFO;
+	if(p==0 || p==1)p=NO_INFO;//these are used as flags in other files
 	return ((double)p)/255.;
+}
+prob_t ProbMap::getProbT(int x,int y,bool observability)const{
+	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		return NO_INFO;
+	}
+	if(observability)return (*grid)[x][y];
+	return (*grid)[x][y];
 }
 double ProbMap::getProb(int x,int y,bool observability)const{
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
@@ -100,6 +107,13 @@ void ProbMap::setProb(int x,int y,double p){
 	}
 	prob_t prob=getProbT(p);
 	(*grid)[x][y]=prob;
+}
+void ProbMap::setProbT(int x,int y, prob_t p){
+	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		cout<<x<<" "<<y<<endl;
+		throw runtime_error("out of bounds access in setProbT");
+	}
+	(*grid)[x][y]=p;
 }
 void ProbMap::resize(int num){
 	if(num==0)return;
