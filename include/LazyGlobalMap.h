@@ -25,6 +25,7 @@ public:
 	void getPose(double *x, double *y, double *th, geometry_msgs::TransformStamped t);
 	prob_t getInflated(double x,double y);
 	prob_t getNormal(double x,double y);
+	ProbMap getProbMap();
 private:
 	ProbMap inflateMap(const ProbMap m);
 	std::vector<ProbMap> submaps;
@@ -35,5 +36,7 @@ private:
 	ProbMap memoNormal;
 	ProbMap memoInflated;
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
+	const int INFLATE_SIZE=9;
+	const int BLUR_SIZE=7;
 };
 #endif

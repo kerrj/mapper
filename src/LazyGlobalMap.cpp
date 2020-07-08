@@ -10,6 +10,10 @@ void LazyGlobalMap::update(ProbMap m){
 	current=ProbMap(m);
 	current.crop();
 	inflatedCurrent=inflateMap(current);
+	if(!tfBuffer->canTransform("submap_"+to_string(poses.size()-1),"submap_0",ros::Time(0),
+				ros::Duration(.1))){
+		throw runtime_error("timed out waiting for trans");
+	}
 	for(int i=1;i<poses.size();i++){
 		double* pose=(poses[i]).data();
 		getPose(pose,pose+1,pose+2,"submap_"+to_string(i),"submap_0");
@@ -38,11 +42,32 @@ void LazyGlobalMap::getPose(double *x,double *y,double *th, geometry_msgs::Trans
 	*th=yaw;
 }
 ProbMap LazyGlobalMap::inflateMap(ProbMap m){
-	//TODO do this
-	return m;
+	ProbMap inflated=ProbMap(m);
+	//now need to un-alias the data
+	inflated.crop();//crop copies the data from the old buffer so we're good
+	for(int r=0;r<inflated.numX();r++){
+		RollingMax<prob_t> rmax(INFLATE_SIZE);
+		for(int c=0;c<inflated.numY();c++){
+			rmax.add(inflated.getProbT(r,c));
+			if(c>=INFLATE_SIZE/2){
+				inflated.setProbT(r,c-INFLATE_SIZE/2,rmax.getVal());
+			}
+		}
+	}
+	for(int c=0;c<inflated.numY();c++){
+		RollingMax<prob_t> rmax(INFLATE_SIZE);
+		for(int r=0;r<inflated.numX();r++){
+			rmax.add(inflated.getProbT(r,c));
+			if(r>=INFLATE_SIZE/2){
+				inflated.setProbT(r-INFLATE_SIZE/2,c,rmax.getVal());
+			}
+		}
+	}
+	return inflated;
 }
 prob_t LazyGlobalMap::getInflated(double x,double y){
 	//first check if it's memoized and return
+	memoInflated.resize(x,y);
 	double gx,gy;
 	memoInflated.map2Grid(x,y,&gx,&gy);
 	int gridX=round(gx);
@@ -82,6 +107,7 @@ prob_t LazyGlobalMap::getInflated(double x,double y){
 	return maxval;
 }
 prob_t LazyGlobalMap::getNormal(double x,double y){
+	memoNormal.resize(x,y);
 	//first check if it's memoized and return
 	double gx,gy;
 	memoNormal.map2Grid(x,y,&gx,&gy);
@@ -121,4 +147,22 @@ prob_t LazyGlobalMap::getNormal(double x,double y){
 	memoNormal.setProbT(gridX,gridY,maxval);
 	return maxval;
 
+}
+ProbMap LazyGlobalMap::getProbMap(){
+	ProbMap map;
+	for(int i=-500;i<500;i++){
+		for(int j=-500;j<500;j++){
+			double x=i*map.CELL_SIZE;
+			double y=j*map.CELL_SIZE;
+			map.resize(x,y);
+			double gx,gy;
+			map.map2Grid(x,y,&gx,&gy);
+			int gridx=round(gx);
+			int gridy=round(gy);
+			prob_t val=getNormal(x,y);
+			if(val<=50)continue;
+			map.setProbT(gridx,gridy,val);
+		}
+	}
+	return map;
 }

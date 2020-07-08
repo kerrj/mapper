@@ -22,6 +22,8 @@ bool add=false;
 bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response  &res){
 	reqlock.lock();
 	lastReq=req;
+	static tf2_ros::StaticTransformBroadcaster br;
+	br.sendTransform(lastReq.transform);//new submap transform
 	add=true;
 	reqlock.unlock();
 	res.success=true;
@@ -56,7 +58,6 @@ int main(int argc, char** argv){
 		bool publish=false;
 		if(add){
 			reqlock.lock();
-			br.sendTransform(lastReq.transform);//new submap transform
 			ProbMap map(lastReq.map.map);
 			gmap.addSubmap(map);
 			double x,y,th;

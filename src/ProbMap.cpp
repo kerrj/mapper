@@ -82,6 +82,7 @@ double ProbMap::getProb(prob_t p)const{
 }
 prob_t ProbMap::getProbT(int x,int y,bool observability)const{
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		if(observability){return 0;}
 		return NO_INFO;
 	}
 	if(observability)return (*grid)[x][y];
@@ -89,6 +90,7 @@ prob_t ProbMap::getProbT(int x,int y,bool observability)const{
 }
 double ProbMap::getProb(int x,int y,bool observability)const{
 	if(x<0 || x>=numX() || y<0 || y>=numY()){
+		if(observability){return 0;}
 		return getProb(NO_INFO);
 	}
 	if(observability)return (*grid)[x][y]/255.;

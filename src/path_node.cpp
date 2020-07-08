@@ -4,6 +4,7 @@
 #include "tf2_ros/buffer.h"
 #include "LazyGlobalMap.h"
 #include "mapper/Submap.h"
+#include "mapper/ProbMap.h"
 #include "mapper/Path.h"
 #include <string>
 using namespace std;
@@ -28,6 +29,7 @@ int main(int argc, char** argv){
 	ros::NodeHandle n;
 	ros::Subscriber sub=n.subscribe("/submap",1,mapCB);
 	ros::Publisher pub=n.advertise<mapper::Path>("/path",1);
+	ros::Publisher pub2=n.advertise<mapper::ProbMap>("/inflated_map",1);
 	tf2_ros::TransformListener listener(*tfBuf);
 	ros::Rate rate(2);
 	ROS_INFO("Starting path planning node");
@@ -40,8 +42,13 @@ int main(int argc, char** argv){
 			cout<<"adding new submap"<<endl;
 			addSubmap=false;
 			gmap.addSubmap(submapToAdd);
+			gmap.update(lastSubmap);
+			ProbMap inflatedglobal=gmap.getProbMap();
+			mapper::ProbMap inflated_msg=inflatedglobal.toRosMsg();
+			pub2.publish(inflated_msg);
+		}else{
+			gmap.update(lastSubmap);
 		}
-		gmap.update(lastSubmap);
 		cout<<"path loop time: "<<ros::Time::now()-start<<endl;
 	}
 	return 0;

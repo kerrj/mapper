@@ -3,7 +3,7 @@ import numpy as np
 import imageio
 bag=rosbag.Bag('croptest.bag')
 size=0
-msglist=list(bag.read_messages(topics=['/map']))
+msglist=list(bag.read_messages(topics=['/inflated_map']))
 #size=max([max(msglist[i][1].map.numX,msglist[i][1].map.numY) for i in range(len(msglist))])
 size=max([max(msglist[i][1].numX,msglist[i][1].numY) for i in range(len(msglist))])
 frame=np.zeros((size,size),dtype='uint8')
