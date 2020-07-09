@@ -10,9 +10,10 @@ public:
 	}
 	void add(T v){
 		sum=sum+v;
+		vals.push_back(v);
 		if(vals.size()>size){
 			sum=sum-vals.front();
-			vals.pop_frontront();
+			vals.pop_front();
 		}
 	}
 	T getVal(){

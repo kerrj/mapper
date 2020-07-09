@@ -63,6 +63,28 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 			}
 		}
 	}
+	//blur the map some
+	for(int r=0;r<inflated.numX();r++){
+		RollingAverage<int> ravg(BLUR_SIZE,0);
+		for(int c=0;c<inflated.numY();c++){
+			ravg.add(inflated.getProbT(r,c));
+			if(c>=BLUR_SIZE/2){
+				if(ravg.getVal()<inflated.getProbT(r,c-BLUR_SIZE/2,true))continue;
+				inflated.setProbT(r,c-BLUR_SIZE/2,ravg.getVal());
+			}
+		}
+	}
+	for(int c=0;c<inflated.numY();c++){
+		RollingAverage<int> ravg(BLUR_SIZE,0);
+		for(int r=0;r<inflated.numX();r++){
+			ravg.add(inflated.getProbT(r,c));
+			if(r>=BLUR_SIZE/2){
+				if(ravg.getVal()<inflated.getProbT(r-BLUR_SIZE/2,c,true))continue;
+				inflated.setProbT(r-BLUR_SIZE/2,c,ravg.getVal());
+			}
+		}
+	}
+	
 	return inflated;
 }
 prob_t LazyGlobalMap::getInflated(double x,double y){
@@ -159,7 +181,7 @@ ProbMap LazyGlobalMap::getProbMap(){
 			map.map2Grid(x,y,&gx,&gy);
 			int gridx=round(gx);
 			int gridy=round(gy);
-			prob_t val=getNormal(x,y);
+			prob_t val=getInflated(x,y);
 			if(val<=50)continue;
 			map.setProbT(gridx,gridy,val);
 		}

@@ -6,6 +6,7 @@
 #include "mapper/Submap.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "mapper/Path.h"
+#include "mapper/ProbMap.h"
 #include <string>
 #include <queue>
 #include "geometry_msgs/Point.h"
@@ -57,20 +58,21 @@ public:
 class PairHash{
 public:
 	size_t operator()(const pair<int,int> &p)const {
-		return hash<int>()(p.first<<15+p.second);
+		return hash<int>()(p.first+hash<int>()(p.second));
 	}
 };
 bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,int starty){
 	priority_queue<shared_ptr<Node>,vector<shared_ptr<Node> >, NodeCmp> pq;
 	pq.push(make_shared<Node>(startx,starty,0));
 	unordered_set<pair<int,int>, PairHash> visited;
+	visited.reserve(10000);
 	shared_ptr<Node> goal=nullptr;
 	int xd=0;
 	while(!pq.empty()){
 		shared_ptr<Node> next=pq.top();
 		pq.pop();
 		xd++;
-		if(map.getInflated(next->getX(),next->getY())==0){
+		if(map.getNormal(next->getX(),next->getY())==0){
 			//found an unobserved area, terminate
 			goal=next;
 			break;
@@ -79,8 +81,9 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 		for(int dx=-1;dx<=1;dx++){
 			for(int dy=-1;dy<=1;dy++){
 				if(dx==0 && dy==0)continue;
-				if(map.getInflated(next->getX()+dx*ProbMap::CELL_SIZE,
-							next->getY()+dy*ProbMap::CELL_SIZE)>200){
+				double neighx=next->getX()+dx*ProbMap::CELL_SIZE;
+				double neighy=next->getY()+dy*ProbMap::CELL_SIZE;
+				if(map.getInflated(neighx,neighy)>230){
 					//obstacle
 					continue;
 				}
@@ -89,7 +92,8 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 					//we've added this to pq already
 					continue;
 				}
-				double cost=hypot(dx,dy);
+				//arb constant multiplied by  map val
+				double cost=hypot(dx,dy)+map.getInflated(neighx,neighy)*2;
 				shared_ptr<Node> neigh=make_shared<Node>(next->x+dx,next->y+dy,
 						next->gval+cost);
 				neigh->setParent(next);
@@ -114,6 +118,7 @@ int main(int argc, char** argv){
 	ros::NodeHandle n;
 	ros::Subscriber sub=n.subscribe("/submap",1,mapCB);
 	ros::Publisher pub=n.advertise<mapper::Path>("/path",1);
+	ros::Publisher pub2=n.advertise<mapper::ProbMap>("/inflated_map",1);
 	tf2_ros::TransformListener listener(*tfBuf);
 	ros::Rate rate(1);
 	ROS_INFO("Starting path planning node");
@@ -123,7 +128,6 @@ int main(int argc, char** argv){
 		ros::spinOnce();
 		ros::Time start=ros::Time::now();
 		if(addSubmap){
-			cout<<"adding new submap"<<endl;
 			addSubmap=false;
 			gmap.addSubmap(submapToAdd);
 		}
@@ -137,14 +141,29 @@ int main(int argc, char** argv){
 		geometry_msgs::TransformStamped robPose=tfBuf->lookupTransform("submap_0","wheel_base",ros::Time(0));
 		int startx=round(robPose.transform.translation.x/ProbMap::CELL_SIZE);
 		int starty=round(robPose.transform.translation.y/ProbMap::CELL_SIZE);
-		findPath(gmap,path,startx,starty);
-		cout<<"path len "<<path.size()<<endl;
-		mapper::Path pathmsg;
-		pathmsg.waypoints=path;
-		pathmsg.header.stamp=ros::Time::now();
-		pathmsg.header.frame_id="submap_0";
-		pub.publish(pathmsg);
-		cout<<"path loop time: "<<ros::Time::now()-start<<endl;
+		bool found=findPath(gmap,path,startx,starty);
+		if(found){
+			cout<<"Path len: "<<path.size()<<endl;;
+			mapper::Path pathmsg;
+			pathmsg.waypoints=path;
+			pathmsg.header.stamp=ros::Time::now();
+			pathmsg.header.frame_id="submap_0";
+			pub.publish(pathmsg);
+			//below is test stuff for showing the path
+			/*ProbMap xd=gmap.getProbMap();
+			for(auto e:path){
+				double gx,gy;
+				xd.map2Grid(e.x,e.y,&gx,&gy);
+				int xpos=round(gx);
+				int ypos=round(gy);
+				xd.setProbT(xpos,ypos,255);
+			}
+			mapper::ProbMap msg=xd.toRosMsg();
+			pub2.publish(msg);*/
+		}else{
+			cout<<"No path found"<<endl;;
+		}
+		cout<<"Path loop time: "<<ros::Time::now()-start<<endl;;
 	}
 	return 0;
 }
