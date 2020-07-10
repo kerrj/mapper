@@ -17,18 +17,19 @@
 #include <algorithm>
 #include "Eigen/Geometry"
 using namespace std;
-const int RATE=1;//hz
-const double SIM_TIME=5;//seconds
-const double SIM_RES=.25;//frequency of samples in the forward simulation
+const int RATE=10;//hz
+const double SIM_TIME=3;//seconds
+const double SIM_RES=.2;//frequency of samples in the forward simulation
 const double LIN_ACC=.5;//units of m/s^2
-const double ANG_ACC=6;//units of rad/s^2
-const double MAX_LIN_VEL=.4;
-const double MAX_ANG_VEL=2;
-const int LIN_SAMPLES=2;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
-const int ANG_SAMPLES=10;//same
+const double ANG_ACC=12;//units of rad/s^2
+const double MAX_LIN_VEL=.3;
+const double MAX_ANG_VEL=3;
+const int LIN_SAMPLES=3;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
+const int ANG_SAMPLES=30;//same
 const double WHEEL_RAD=.04;
 const double WHEEL_SEP=.1978;
 const double COL_RAD=.25/2.;
+const double GOAL_TOL=.1;
 
 tf2_ros::Buffer tfBuf;
 vector<pair<double,double> > lastScan;
@@ -122,7 +123,7 @@ double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
 	double pathX,pathY;
 	closestPathPoint(x,y,&pathX,&pathY,robPath);
 	double dist=hypot(x-pathX,y-pathY);
-	return 1./(pow(v+.01,2))+dist;
+	return 1./(pow(v+.01,2))+.1*dist;
 }
 mapper::BaseCommand getCommand(){
 	//does everything lol
@@ -166,6 +167,7 @@ mapper::BaseCommand getCommand(){
 			bestDist=dist;
 		}
 	}
+	if(hypot(robPath[robPath.size()-1](0),robPath[robPath.size()-1](1))<GOAL_TOL)return cmd;
 	//generate space of trajs
 	const double LIN_DELTA=(1./RATE)*LIN_ACC;
 	const double ANG_DELTA=(1./RATE)*ANG_ACC;
@@ -180,7 +182,7 @@ mapper::BaseCommand getCommand(){
 			if(testV<0 || testV>MAX_LIN_VEL || abs(testW)>MAX_ANG_VEL)continue;
 			//for each traj: evaluate using score
 			double score=evalTraj(testV,testW,robPath);
-			cout<<"evaling (v,w): "<<testV<<","<<testW<<" score: "<<score<<endl;
+			//cout<<"evaling (v,w): "<<testV<<","<<testW<<" score: "<<score<<endl;
 			if(score<bestScore){
 				bestScore=score;
 				cmd.velocity=testV;
@@ -205,6 +207,6 @@ int main(int argc, char **argv){
 		ros::spinOnce();
 		mapper::BaseCommand cmd=getCommand();
 		cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
-		//commandPub.publish(cmd);
+		commandPub.publish(cmd);
 	}
 }
