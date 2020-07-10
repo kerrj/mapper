@@ -3,8 +3,10 @@ import rospy
 import readchar
 from mapper.msg import BaseCommand
 from geometry_msgs.msg import Point
+from mapper.msg import Path
 rospy.init_node("teleop")
 cmd_pub=rospy.Publisher("target_vel",BaseCommand,queue_size=1)
+pathpub=rospy.Publisher("path",Path,queue_size=1)
 svel=.35
 turnvel=1.5
 print("Type command (wasd for direction). press q to exit")
@@ -39,6 +41,11 @@ while not rospy.is_shutdown():
             p=Point(x,y,0.)
             l.append(p)
         path.waypoints=l
+        pathpub.publish(path)
+    if 'z' in cmd:
+        path=Path()
+        l=[(.1*i,0) for i in range(20)]
+        path.waypoints=[Point(x,y,0.) for x,y in l]
         pathpub.publish(path)
     cmd_pub.publish(msg)
 
