@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "tf2_ros/transform_listener.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/buffer.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/convert.h"
@@ -18,18 +19,16 @@
 #include "Eigen/Geometry"
 using namespace std;
 const int RATE=10;//hz
-const double SIM_TIME=3;//seconds
+const double SIM_TIME=4;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
-const double LIN_ACC=.5;//units of m/s^2
+const double LIN_ACC=1;//units of m/s^2
 const double ANG_ACC=12;//units of rad/s^2
-const double MAX_LIN_VEL=.3;
+const double MAX_LIN_VEL=.25;
 const double MAX_ANG_VEL=3;
 const int LIN_SAMPLES=3;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
-const int ANG_SAMPLES=30;//same
-const double WHEEL_RAD=.04;
-const double WHEEL_SEP=.1978;
+const int ANG_SAMPLES=20;//same
 const double COL_RAD=.25/2.;
-const double GOAL_TOL=.1;
+const double GOAL_TOL=.15;
 
 tf2_ros::Buffer tfBuf;
 vector<pair<double,double> > lastScan;
@@ -63,9 +62,11 @@ void pathCB(const mapper::Path::ConstPtr &path){
 }
 
 void encCB(const mapper::EncoderReading::ConstPtr &msg){
+	const double WHEEL_RAD=.04;
+	const double WHEEL_SEP=.1978;
 	lastEncTime=msg->header.stamp;
-	curV=(msg->leftVel+msg->rightVel)*WHEEL_RAD/2;
-	curW=(msg->rightVel-msg->leftVel)*WHEEL_RAD/WHEEL_SEP;
+	curV=(msg->leftVel+msg->rightVel)*(WHEEL_RAD/2.);
+	curW=(msg->rightVel-msg->leftVel)*(WHEEL_RAD/WHEEL_SEP);
 }
 void closestPathPoint(double x,double y,double *pathX,double *pathY,vector<Eigen::Vector2d> &robPath){
 	//doesnt ACTUALLY find closest path point, it searches along a short segment of the path
@@ -73,7 +74,7 @@ void closestPathPoint(double x,double y,double *pathX,double *pathY,vector<Eigen
 	//path point
 	double closestDist=numeric_limits<double>::max();
 	//we start searching a little ways in front of the robot to prevent loop-back behavior of dwa
-	const int START_ID=15;
+	const int START_ID=20;
 	const int SEARCH_WIN=MAX_LIN_VEL*SIM_TIME/ProbMap::CELL_SIZE;
 	for(int i=min(pathFinger+START_ID,(int)robPath.size()-1);i<robPath.size();i++){
 		if(i>pathFinger+SEARCH_WIN)break;
@@ -123,7 +124,7 @@ double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
 	double pathX,pathY;
 	closestPathPoint(x,y,&pathX,&pathY,robPath);
 	double dist=hypot(x-pathX,y-pathY);
-	return 1./(pow(v+.01,2))+.1*dist;
+	return 1./(pow(v+.01,2.))+200*dist;
 }
 mapper::BaseCommand getCommand(){
 	//does everything lol
@@ -192,13 +193,34 @@ mapper::BaseCommand getCommand(){
 	}
 	return cmd;
 }
-
+double x=0,y=0,th=0;
+void odomCB(const mapper::Odometry::ConstPtr &odom){
+	static tf2_ros::TransformBroadcaster br;
+	x+=cos(odom->th)*odom->x;
+	y+=sin(odom->th)*odom->x;
+	th+=odom->th;
+	geometry_msgs::TransformStamped trans;
+	trans.header.stamp=ros::Time::now();
+	trans.header.frame_id="submap_0";
+	trans.child_frame_id="wheel_base";
+	trans.transform.translation.x=x;
+	trans.transform.translation.y=y;
+	trans.transform.translation.z=0;
+	tf2::Quaternion q;
+	q.setRPY(0,0,th);
+	trans.transform.rotation.x=q.x();
+	trans.transform.rotation.y=q.y();
+	trans.transform.rotation.z=q.z();
+	trans.transform.rotation.w=q.w();
+	br.sendTransform(trans);
+}
 int main(int argc, char **argv){
 	ros::init(argc,argv,"local_planning");
 	ros::NodeHandle n;
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	ros::Subscriber sub2=n.subscribe("/path",1,pathCB);
 	ros::Subscriber sub3=n.subscribe("/encoders",1,encCB);
+	//ros::Subscriber sub4=n.subscribe("/wheel_odom",50,odomCB);
 	ros::Publisher commandPub=n.advertise<mapper::BaseCommand>("/target_vel",1);
 	tf2_ros::TransformListener listener(tfBuf);
 	ros::Rate rate(RATE);

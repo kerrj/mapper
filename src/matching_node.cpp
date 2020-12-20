@@ -18,6 +18,9 @@
 #include <mutex>
 #include <vector>
 #include <iostream>
+#include "util.hpp"
+#include <chrono>
+#include "util.hpp"
 const double MAX_DIST_PER_SUBMAP=5;
 const double SCAN_TIMEOUT=2;
 using namespace std;
@@ -34,13 +37,13 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	scan_lock.lock();
 	lastScanTime=ros::Time::now();
 	static tf2_ros::TransformBroadcaster br;
-	ros::Time start=ros::Time::now();
-	bool reset=matcher.addScan(scan,&br) && dist_travelled>1;
-	ros::Duration elapse=ros::Time::now()-start;
+	auto start = std::chrono::system_clock::now();
+	bool reset=matcher.addScan(scan,&br); 
+	std::chrono::duration<double> elapse = std::chrono::system_clock::now() - start;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
-	//if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
-	if(hypot(matcher.scanPose.x,matcher.scanPose.y)>MAX_DIST_PER_SUBMAP || reset){
+	if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
+	//if(hypot(matcher.scanPose.x,matcher.scanPose.y)>MAX_DIST_PER_SUBMAP || reset){
 		dist_travelled=0;
 		mapper::AddSubmap srv;
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
@@ -55,10 +58,9 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 			ROS_WARN("Couldn't dump submap");
 	}
 	scan_lock.unlock();
-	sum+=elapse.toSec();
+	sum+=elapse.count();
 	num++;
-	//cout<<"matching ite: "<<elapse<<endl;
-	cout<<"matching avg: "<<sum/num<<endl;
+	cout<<"Match time. ite: "<<elapse.count()<<" avg: "<<sum/num<<endl;
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;

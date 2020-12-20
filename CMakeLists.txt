@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.9)
 project(mapper)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -19,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   cmake_modules
 )
+find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
 
@@ -120,7 +122,7 @@ find_package(Ceres REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mapper
-CATKIN_DEPENDS geometry_msgs message_runtime sensor_msgs std_msgs std_srvs rospy roscpp
+CATKIN_DEPENDS geometry_msgs message_runtime sensor_msgs std_msgs std_srvs rospy roscpp 
 )
 
 ###########
@@ -145,6 +147,7 @@ include_directories(
 	 src/LazyGlobalMap.cpp
  )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

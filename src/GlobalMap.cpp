@@ -92,10 +92,10 @@ void GlobalMap::getPose(double *x,double *y,double *th, geometry_msgs::Transform
 }
 bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th){
 	//const double T_RES=map->CELL_SIZE;//increment for translation
-	const double T_RES=.03;
-	const double R_RES=.006;//increment for rotation
-	const double T_WINDOW=1.5;//meter
-	const double R_WINDOW=.4;//rad
+	const double T_RES=ProbMap::CELL_SIZE;
+	const double R_RES=.01;//increment for rotation
+	const double T_WINDOW=2;//meter
+	const double R_WINDOW=.5;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
 	double best_score=points->cols()*.55;
 	bool found_match=false;
@@ -121,11 +121,11 @@ bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double 
 	Problem problem;
 	CostFunction *cost_fn=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(map,points),points->cols());
 	double p[]={*x,*y,*th};
-	problem.AddResidualBlock(cost_fn,new CauchyLoss(.5),p);
+	problem.AddResidualBlock(cost_fn,nullptr,p);
 	Solver::Options options;
-	options.num_threads=2;
+	options.num_threads=1;
+	options.max_num_iterations=30;
 	options.linear_solver_type=DENSE_QR;
-	options.use_nonmonotonic_steps=true;
 	options.minimizer_progress_to_stdout=false;
 	Solver::Summary summary;
 	Solve(options,&problem,&summary);

@@ -39,5 +39,6 @@ private:
 	double MAX_RANGE=5.;//limit range we pay attention to measurements
 	int id;
 	double lastScanCost=10000000;
+	ceres::Solver::Options options;
 };
 #endif

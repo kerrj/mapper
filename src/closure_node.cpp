@@ -81,7 +81,7 @@ int main(int argc, char** argv){
 				ys.push_back(lastScan->ys[i]);
 			}
 			if(xs.size()<500){
-				ROS_INFO("not enough points to match");
+				ROS_INFO("Not enough points to match, skipping loop closure");
 			}else{
 				Eigen::MatrixXf points(2,lastScan->xs.size());
 				points.row(0)=Eigen::Map<Eigen::MatrixXf>(xs.data(),1,xs.size());
@@ -93,7 +93,7 @@ int main(int argc, char** argv){
 							match.child_frame_id.c_str());
 					double x,y,th;
 					gmap.getPose(&x,&y,&th,match);
-					Eigen::DiagonalMatrix<double,3> covariance(.02,.02,.017);
+					Eigen::DiagonalMatrix<double,3> covariance(.02,.02,.02);
 					int parent=atoi(match.header.frame_id.c_str()+7);
 					int child=atoi(match.child_frame_id.c_str()+7);
 					gmap.addConstraint(parent,child,x,y,th,covariance);

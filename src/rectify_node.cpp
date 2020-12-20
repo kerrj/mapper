@@ -6,6 +6,7 @@
 #include "mapper/RectifiedScan.h"
 #include "Eigen/Dense"
 #include "Eigen/Geometry"
+#include "util.hpp"
 #include <vector>
 #define PI 3.14159265358979323846
 using namespace std;
@@ -51,7 +52,8 @@ public:
 	void odomCB(const mapper::Odometry msg){
 		odomQ.push_back(msg);
 		//only keeps the last .4 seconds of updates after the finger
-		while(poseFinger<odomQ.size()-1 && odomQ[poseFinger].header.stamp<odomQ[odomQ.size()-1].header.stamp-ros::Duration(.4)){
+		while(poseFinger<odomQ.size()-1 && 
+			odomQ[poseFinger].header.stamp<odomQ[odomQ.size()-1].header.stamp-ros::Duration(.4)){
 			poseFinger++;
 		}
 	}
@@ -74,17 +76,12 @@ public:
 private:
 	vector<Pose> integrateOdom(const sensor_msgs::LaserScan::ConstPtr& scan){
 		ros::Time scanStart=scan->header.stamp;
-		/*cout<<"start integrate"<<endl;
-		cout<<"scanstart "<<scanStart<<endl;
-		cout<<"odomq size "<<odomQ.size()<<endl;
-		cout<<"figner pos "<<poseFinger<<endl;*/
 		int i=poseFinger;
 		for( ;i<odomQ.size();i++){
 			if(odomQ[i].header.stamp>scanStart){
 				break;
 			}
 		}
-		//cout<<"posefinger after increment "<<i<<endl;
 		vector<Pose> poses={Pose(0,0,0)};
 		for(;i<odomQ.size();i++){
 			Pose prevP=poses[poses.size()-1];

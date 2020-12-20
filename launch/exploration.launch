@@ -1,0 +1,10 @@
+<launch>
+<node name="matching_node" pkg="mapper" type="local_matching" output="screen" required="true" launch-prefix="nice -n -20"/>
+<node name="closure_node" pkg="mapper" type="global_matching" output="screen" required="true"/>
+<node name="motor_node" pkg="mapper" type="motor_node.py" output="screen" required="true"/>
+<node name="rectify_node" pkg="mapper" type="rectify_scan" output="screen" required="true"/>
+<node name="wheel_odom" pkg="mapper" type="wheel_odom.py" output="screen" required="true"/>
+<node name="base_controller" pkg="mapper" type="base_controller.py" output="screen" required="true"/>
+<node name="local_planning" pkg="mapper" type="local_planning" output="screen" required="true"/>
+<node name="global_planning" pkg="mapper" type="path_planning" output="screen" required="true"/>
+</launch>

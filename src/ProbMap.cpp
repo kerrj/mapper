@@ -1,4 +1,5 @@
 #include "ProbMap.h"
+#include <omp.h>
 using namespace std;
 ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
@@ -180,17 +181,50 @@ void ProbMap::addObservation(double rx,double ry,double rth,double px,double py)
 	pad=max(pad,robotGridX-numX()+1);
 	pad=max(pad,robotGridY-numY()+1);
 	resize(pad);
-	map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
-	laserGridX=round(gx);
-	laserGridY=round(gy);
-	map2Grid(rx,ry,&gx,&gy);
-	robotGridX=round(gx);
-	robotGridY=round(gy);
 	//register the endpoints of the laser
 	updateProb(laserGridX,laserGridY,P_HIT);
 	updateProb(robotGridX,robotGridY,P_MISS);
 	//call bresenham alg to paint between the endpoints with free space
 	fillBetween(robotGridX,robotGridY,laserGridX,laserGridY);
+}
+void ProbMap::addObservations(double rx,double ry,double rth,std::vector<double> &xs, std::vector<double> &ys){
+	//first find the grid coords of the start point
+	Eigen::Rotation2D<double> R(rth);
+	Eigen::Vector2d trans(rx,ry);	
+	double gx,gy;
+	map2Grid(rx,ry,&gx,&gy);
+	int robotGridX=round(gx);
+	int robotGridY=round(gy);
+	//decide to resize the map based on max and min of all points
+	int pad=0;
+	pad=max(pad,robotGridX-numX()+1);
+	pad=max(pad,robotGridY-numY()+1);
+	for(int i=0;i<xs.size();i++){
+		Eigen::Vector2d robotPoint(xs[i],ys[i]);
+		Eigen::Vector2d mapPoint=R*robotPoint+trans;
+		map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
+		int laserGridX=round(gx);
+		int laserGridY=round(gy);
+		//take care of less than 0
+		pad=max(pad,0-laserGridY);
+		pad=max(pad,0-laserGridX);
+		//and more than size of x,y
+		pad=max(pad,laserGridX-numX()+1);
+		pad=max(pad,laserGridY-numY()+1);
+	}
+	resize(pad);
+	updateProb(robotGridX,robotGridY,P_MISS);//robot in empty space
+	//now in parallel split up the work of adding observations
+	#pragma omp parallel for schedule(static) 
+	for(int i=0;i<xs.size();i++){
+		Eigen::Vector2d robotPoint(xs[i],ys[i]);
+		Eigen::Vector2d mapPoint=R*robotPoint+trans;
+		map2Grid(mapPoint(0),mapPoint(1),&gx,&gy);
+		int laserGridX=round(gx);
+		int laserGridY=round(gy);
+		updateProb(laserGridX,laserGridY,P_HIT);
+		fillBetween(robotGridX,robotGridY,laserGridX,laserGridY);
+	}
 }
 void ProbMap::fillBetween(int x1,int y1,int x2,int y2)
 {
