@@ -31,7 +31,7 @@ public:
 		*mx=gx*CELL_SIZE-map_x;
 		*my=gy*CELL_SIZE-map_y;
 	}
-	std::vector<std::vector<float> > *getMaxMap(int height);
+	std::vector<std::vector<prob_t> > *getMaxMap(int height);
 	void resize(double x,double y);
 	int numX()const;
 	int numY()const;
@@ -49,14 +49,14 @@ public:
 private:
 	void updateProb(int x,int y,double update);
 	void fillBetween(int x0,int y0,int x1,int y1);
-	std::vector<float> rollRow(std::vector<prob_t> &row,int K);
+	std::vector<prob_t> rollRow(std::vector<prob_t> &row,int K);
 	//adds num cells in every direction (new dims are (dx+2*num,dy+2*num))
 	void resize(int num);
 	double odds(double p);
 	double oddsinv(double p);
 	double clamp(double val,double minval,double maxval)const;
 	std::shared_ptr<std::vector<std::vector<prob_t> > > grid;
-	std::vector<std::vector<std::vector<float> > > maxes;
+	std::vector<std::vector<std::vector<prob_t> > > maxes;
 	double map_x,map_y,sumX,sumY;
 	int numScans;
 	static constexpr prob_t NO_INFO=50;//NEVER MAKE THIS 0 since its reserved for keeping track of observed places

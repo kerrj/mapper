@@ -1,5 +1,6 @@
 #include "ProbMap.h"
 #include <omp.h>
+#include "util.hpp"
 using namespace std;
 ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
@@ -346,23 +347,23 @@ mapper::ProbMap ProbMap::toRosMsg()const{
 	return msg;
 }
 
-vector<vector<float> > *ProbMap::getMaxMap(int height){
+vector<vector<prob_t> > *ProbMap::getMaxMap(int height){
 	if(height<0)throw runtime_error("negative height requested in getMaxMap");
 	if(height<maxes.size())return &maxes[height];
 	for(int map=maxes.size();map<=height;map++){
-		vector<vector<float> > maxMap;
+		vector<vector<prob_t> > maxMap;
 		const int wSize=1<<map;
 		//first compute the max for rows of wSize
 		for(int x=0;x<numX();x++){
-			vector<float> newRow=rollRow((*grid)[x],wSize);
+			vector<prob_t> newRow=rollRow((*grid)[x],wSize);
 			maxMap.push_back(newRow);
 		}
 		//then go up columns to accumulate maxes of the rows
 		for(int y=0;y<numY();y++){
-			RollingMax<float> r(wSize);
+			RollingMax<prob_t> r(wSize);
 			for(int x=numX()-1;x>=0;x--){
-				double v=maxMap[x][y];
-				if(v<=.2)v=0;
+				prob_t v=maxMap[x][y];
+				if(v<=51/*probabillity .2*/)v=0;
 				r.add(maxMap[x][y]);
 				maxMap[x][y]=r.getVal();
 			}
@@ -371,12 +372,12 @@ vector<vector<float> > *ProbMap::getMaxMap(int height){
 	}
 	return &maxes[height];
 }
-vector<float> ProbMap::rollRow(vector<prob_t> &row, int size) {
-	RollingMax<float> r(size);
-	vector<float> res;
+vector<prob_t> ProbMap::rollRow(vector<prob_t> &row, int size) {
+	RollingMax<prob_t> r(size);
+	vector<prob_t> res;
 	res.resize(row.size());
 	for(int i=row.size()-1;i>=0;i--){
-		r.add(getProb(row[i]));
+		r.add(row[i]);
 		res[i]=r.getVal();
 	}
 	return res;

@@ -9,6 +9,7 @@
 #include "geometry_msgs/TransformStamped.h"
 #include "mapper/RectifiedScan.h"
 #include <mutex>
+#include "util.hpp"
 const double MATCH_INTERVAL=2;
 using namespace std;
 mutex reqlock;;
@@ -49,7 +50,7 @@ int main(int argc, char** argv){
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	tf2_ros::StaticTransformBroadcaster br;
 	tf2_ros::TransformListener list(*buf);
-	ros::Rate rate(2);
+	ros::Rate rate(.5);
 	ros::AsyncSpinner spinner(1,&serviceQueue);
 	ROS_INFO("Starting closure node");
 	spinner.start();
@@ -62,7 +63,7 @@ int main(int argc, char** argv){
 			gmap.addSubmap(map);
 			double x,y,th;
 			gmap.getPose(&x,&y,&th,lastReq.transform);
-			Eigen::DiagonalMatrix<double,3> covariance(.1,.1,.1);
+			Eigen::DiagonalMatrix<double,3> covariance(.15,.15,.2);
 			gmap.addConstraint(gmap.numMaps()-1,gmap.numMaps(),x,y,th,covariance);
 			gmap.solve();
 			gmap.broadcastPoses(br);
@@ -93,7 +94,7 @@ int main(int argc, char** argv){
 							match.child_frame_id.c_str());
 					double x,y,th;
 					gmap.getPose(&x,&y,&th,match);
-					Eigen::DiagonalMatrix<double,3> covariance(.02,.02,.02);
+					Eigen::DiagonalMatrix<double,3> covariance(ProbMap::CELL_SIZE,ProbMap::CELL_SIZE,.03);
 					int parent=atoi(match.header.frame_id.c_str()+7);
 					int child=atoi(match.child_frame_id.c_str()+7);
 					gmap.addConstraint(parent,child,x,y,th,covariance);

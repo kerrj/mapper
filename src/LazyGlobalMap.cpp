@@ -1,4 +1,5 @@
 #include "LazyGlobalMap.h"
+#include <omp.h>
 using namespace std;
 LazyGlobalMap::LazyGlobalMap(shared_ptr<tf2_ros::Buffer> buf){
 	tfBuffer=buf;
@@ -12,7 +13,7 @@ void LazyGlobalMap::update(ProbMap m){
 	inflatedCurrent=inflateMap(current);
 	if(!tfBuffer->canTransform("submap_"+to_string(poses.size()-1),"submap_0",ros::Time(0),
 				ros::Duration(.1))){
-		throw runtime_error("timed out waiting for trans");
+		throw runtime_error("Timed out waiting for transform from submap 0 to current submap in lazy global map");
 	}
 	for(int i=1;i<poses.size();i++){
 		double* pose=(poses[i]).data();
@@ -45,6 +46,7 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 	ProbMap inflated=ProbMap(m);
 	//now need to un-alias the data
 	inflated.crop();//crop copies the data from the old buffer so we're good
+	#pragma omp parallel for 
 	for(int r=0;r<inflated.numX();r++){
 		RollingMax<prob_t> rmax(INFLATE_SIZE);
 		for(int c=0;c<inflated.numY();c++){
@@ -54,6 +56,7 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 			}
 		}
 	}
+	#pragma omp parallel for 
 	for(int c=0;c<inflated.numY();c++){
 		RollingMax<prob_t> rmax(INFLATE_SIZE);
 		for(int r=0;r<inflated.numX();r++){
@@ -64,6 +67,7 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 		}
 	}
 	//blur the map some
+	#pragma omp parallel for 
 	for(int r=0;r<inflated.numX();r++){
 		RollingAverage<int> ravg(BLUR_SIZE,0);
 		for(int c=0;c<inflated.numY();c++){
@@ -74,6 +78,7 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 			}
 		}
 	}
+	#pragma omp parallel for 
 	for(int c=0;c<inflated.numY();c++){
 		RollingAverage<int> ravg(BLUR_SIZE,0);
 		for(int r=0;r<inflated.numX();r++){

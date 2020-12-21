@@ -51,7 +51,7 @@ void BBNode::getPose(double *x, double *y, double *th){
 double BBNode::getScore(){
 	if(score>=0)return score;
 	//otherwise we need to compute and store
-	vector<vector<float> > *maxMap=map->getMaxMap(height);
+	vector<vector<prob_t> > *maxMap=map->getMaxMap(height);
 	score = 0;
 	double sx,sy,sth;
 	getPose(&sx,&sy,&sth);
@@ -67,7 +67,7 @@ double BBNode::getScore(){
 		int gridX=round(gx);
 		int gridY=round(gy);
 		if(gridX<0 || gridX>=map->numX() || gridY<0 || gridY>=map->numY())continue;
-		score+=(*maxMap)[gridX][gridY];
+		score+=map->getProb((*maxMap)[gridX][gridY]);
 	}
 	return score;	
 }
@@ -91,11 +91,10 @@ void GlobalMap::getPose(double *x,double *y,double *th, geometry_msgs::Transform
 	*th=yaw;
 }
 bool GlobalMap::matchScan(Eigen::MatrixXf *points,ProbMap *map,double *x,double *y,double *th){
-	//const double T_RES=map->CELL_SIZE;//increment for translation
 	const double T_RES=ProbMap::CELL_SIZE;
 	const double R_RES=.01;//increment for rotation
-	const double T_WINDOW=2;//meter
-	const double R_WINDOW=.5;//rad
+	const double T_WINDOW=1.5;//meter
+	const double R_WINDOW=.4;//rad
 	list<BBNode> stack=BBNode::getC0(T_WINDOW,R_WINDOW,T_RES,R_RES,*x,*y,*th,points,map);
 	double best_score=points->cols()*.55;
 	bool found_match=false;
@@ -270,10 +269,10 @@ void GlobalMap::addConstraint(int parent,int child, double x,double y,double th,
 }
 void GlobalMap::solve(){
 	ceres::Solver::Options options;
-	options.num_threads=2;
+	options.num_threads=1;
 	options.linear_solver_type=ceres::DENSE_QR;
 	options.use_nonmonotonic_steps=true;
-	options.max_num_iterations=200;
+	options.max_num_iterations=500;
 	ceres::Solver::Summary sum;
 	ceres::Solve(options,&problem,&sum);
 	//cout<<sum.BriefReport()<<endl;

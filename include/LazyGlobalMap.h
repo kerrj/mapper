@@ -37,6 +37,6 @@ private:
 	ProbMap memoInflated;
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer;
 	const int BLUR_SIZE=21;
-	const int INFLATE_SIZE=9;
+	const int INFLATE_SIZE=7;
 };
 #endif

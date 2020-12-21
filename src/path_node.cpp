@@ -12,6 +12,7 @@
 #include "geometry_msgs/Point.h"
 #include <unordered_set>
 #include <algorithm>
+#include "util.hpp"
 using namespace std;
 shared_ptr<tf2_ros::Buffer> tfBuf=make_shared<tf2_ros::Buffer>();
 LazyGlobalMap gmap(tfBuf);
@@ -72,7 +73,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 		shared_ptr<Node> next=pq.top();
 		pq.pop();
 		xd++;
-		if(map.getNormal(next->getX(),next->getY())==0){
+		if(map.getInflated(next->getX(),next->getY())==0){
 			//found an unobserved area, terminate
 			goal=next;
 			break;
@@ -93,7 +94,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 					continue;
 				}
 				//arb constant multiplied by  map val
-				double cost=hypot(dx,dy)+map.getInflated(neighx,neighy)*2;
+				double cost=hypot(dx,dy)+map.getInflated(neighx,neighy)*.1;
 				shared_ptr<Node> neigh=make_shared<Node>(next->x+dx,next->y+dy,
 						next->gval+cost);
 				neigh->setParent(next);
@@ -120,18 +121,20 @@ int main(int argc, char** argv){
 	ros::Publisher pub=n.advertise<mapper::Path>("/path",1);
 	ros::Publisher pub2=n.advertise<mapper::ProbMap>("/inflated_map",1);
 	tf2_ros::TransformListener listener(*tfBuf);
-	ros::Rate rate(1);
+	ros::Rate rate(.5);
 	ROS_INFO("Starting path planning node");
 	while(ros::ok()){
 		//Danger, the probmaps we pass into the global map will be modified by global map
 		rate.sleep();
 		ros::spinOnce();
-		ros::Time start=ros::Time::now();
+		auto start=tic();
 		if(addSubmap){
 			addSubmap=false;
 			gmap.addSubmap(submapToAdd);
 		}
+		auto start2=tic();
 		gmap.update(lastSubmap);
+		toc("updating submap",start2);
 		//now we can do thing with the planner
 		vector<geometry_msgs::Point > path;
 		if(!tfBuf->canTransform("submap_0","wheel_base",ros::Time(0),ros::Duration(.1))){
@@ -159,11 +162,13 @@ int main(int argc, char** argv){
 				xd.setProbT(xpos,ypos,255);
 			}
 			mapper::ProbMap msg=xd.toRosMsg();
-			pub2.publish(msg);*/
+			pub2.publish(msg);
+			*/
+			//end test stuff
 		}else{
 			cout<<"No path found"<<endl;;
 		}
-		cout<<"Path loop time: "<<ros::Time::now()-start<<endl;;
+		toc("Total planning loop time",start);
 	}
 	return 0;
 }

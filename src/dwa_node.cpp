@@ -18,12 +18,12 @@
 #include <algorithm>
 #include "Eigen/Geometry"
 using namespace std;
-const int RATE=10;//hz
+const int RATE=5;//hz
 const double SIM_TIME=4;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
 const double LIN_ACC=1;//units of m/s^2
 const double ANG_ACC=12;//units of rad/s^2
-const double MAX_LIN_VEL=.25;
+const double MAX_LIN_VEL=.2;
 const double MAX_ANG_VEL=3;
 const int LIN_SAMPLES=3;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
 const int ANG_SAMPLES=20;//same

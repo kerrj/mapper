@@ -42,8 +42,8 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	std::chrono::duration<double> elapse = std::chrono::system_clock::now() - start;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
-	if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){
-	//if(hypot(matcher.scanPose.x,matcher.scanPose.y)>MAX_DIST_PER_SUBMAP || reset){
+	//if(dist_travelled>MAX_DIST_PER_SUBMAP || reset){//line integral
+	if(hypot(matcher.scanPose.x,matcher.scanPose.y)>MAX_DIST_PER_SUBMAP || reset){//anchor
 		dist_travelled=0;
 		mapper::AddSubmap srv;
 		srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));

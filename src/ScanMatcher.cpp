@@ -23,7 +23,7 @@ ScanMatcher::ScanMatcher(){
 	scanPose.th=0;
 	id=0;
 	options.num_threads=4;
-	options.max_num_iterations=20;
+	options.max_num_iterations=25;
 	options.linear_solver_type=DENSE_QR;
 	options.use_nonmonotonic_steps=false;
 	options.minimizer_progress_to_stdout=false;
@@ -79,9 +79,7 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(&map,&xs,&ys),xs.size());
 		problem.AddResidualBlock(cost_fun,NULL,p);
 		Solver::Summary summary;
-		auto start=tic();
 		Solve(options,&problem,&summary);
-		toc("solving",start);
 		//cout<<"pre: "<<summary.preprocessor_time_in_seconds<<" min: "<<summary.minimizer_time_in_seconds<<" post: "<<summary.postprocessor_time_in_seconds<<" tot: "<<summary.total_time_in_seconds<<endl;
 		//lower cost is better
 		if(summary.final_cost>1.4*lastScanCost){
@@ -96,12 +94,7 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
 	//add all the observations using the fine tuned pose
 	if(!jumped){
-		auto start=tic();
 		map.incScans(p[0],p[1]);
-		/*for(int i=0;i<scan->xs.size();i++){
-			if(!goodMeasurement(scan->xs[i],scan->ys[i]))continue;
-			map.addObservation(p[0],p[1],p[2],scan->xs[i],scan->ys[i]);
-		}*/
 		xs.clear();
 		ys.clear();
 		for(int i=0;i<scan->xs.size();i+=1){
@@ -110,7 +103,6 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 			ys.push_back(scan->ys[i]);
 		}
 		map.addObservations(p[0],p[1],p[2],xs,ys);
-		toc("adding obs",start);
 	}
 	//update the pose given the match
 	string submapId=getFrameId();
