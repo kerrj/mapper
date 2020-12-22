@@ -17,15 +17,16 @@
 #include <cmath>
 #include <algorithm>
 #include "Eigen/Geometry"
+#include "util.hpp"
 using namespace std;
 const int RATE=5;//hz
 const double SIM_TIME=4;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
-const double LIN_ACC=1;//units of m/s^2
-const double ANG_ACC=12;//units of rad/s^2
-const double MAX_LIN_VEL=.2;
+const double LIN_ACC=.4;//units of m/s^2
+const double ANG_ACC=5;//units of rad/s^2
+const double MAX_LIN_VEL=.3;
 const double MAX_ANG_VEL=3;
-const int LIN_SAMPLES=3;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
+const int LIN_SAMPLES=5;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
 const int ANG_SAMPLES=20;//same
 const double COL_RAD=.25/2.;
 const double GOAL_TOL=.15;
@@ -74,8 +75,8 @@ void closestPathPoint(double x,double y,double *pathX,double *pathY,vector<Eigen
 	//path point
 	double closestDist=numeric_limits<double>::max();
 	//we start searching a little ways in front of the robot to prevent loop-back behavior of dwa
-	const int START_ID=20;
 	const int SEARCH_WIN=MAX_LIN_VEL*SIM_TIME/ProbMap::CELL_SIZE;
+	const int START_ID = SEARCH_WIN/2;
 	for(int i=min(pathFinger+START_ID,(int)robPath.size()-1);i<robPath.size();i++){
 		if(i>pathFinger+SEARCH_WIN)break;
 		double dist=hypot(x-robPath[i](0),y-robPath[i](1));
@@ -124,7 +125,7 @@ double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
 	double pathX,pathY;
 	closestPathPoint(x,y,&pathX,&pathY,robPath);
 	double dist=hypot(x-pathX,y-pathY);
-	return 1./(pow(v+.01,2.))+200*dist;
+	return 1/(1+std::pow(v+1,2))+dist;
 }
 mapper::BaseCommand getCommand(){
 	//does everything lol
@@ -193,34 +194,12 @@ mapper::BaseCommand getCommand(){
 	}
 	return cmd;
 }
-double x=0,y=0,th=0;
-void odomCB(const mapper::Odometry::ConstPtr &odom){
-	static tf2_ros::TransformBroadcaster br;
-	x+=cos(odom->th)*odom->x;
-	y+=sin(odom->th)*odom->x;
-	th+=odom->th;
-	geometry_msgs::TransformStamped trans;
-	trans.header.stamp=ros::Time::now();
-	trans.header.frame_id="submap_0";
-	trans.child_frame_id="wheel_base";
-	trans.transform.translation.x=x;
-	trans.transform.translation.y=y;
-	trans.transform.translation.z=0;
-	tf2::Quaternion q;
-	q.setRPY(0,0,th);
-	trans.transform.rotation.x=q.x();
-	trans.transform.rotation.y=q.y();
-	trans.transform.rotation.z=q.z();
-	trans.transform.rotation.w=q.w();
-	br.sendTransform(trans);
-}
 int main(int argc, char **argv){
 	ros::init(argc,argv,"local_planning");
 	ros::NodeHandle n;
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	ros::Subscriber sub2=n.subscribe("/path",1,pathCB);
 	ros::Subscriber sub3=n.subscribe("/encoders",1,encCB);
-	//ros::Subscriber sub4=n.subscribe("/wheel_odom",50,odomCB);
 	ros::Publisher commandPub=n.advertise<mapper::BaseCommand>("/target_vel",1);
 	tf2_ros::TransformListener listener(tfBuf);
 	ros::Rate rate(RATE);
@@ -228,7 +207,7 @@ int main(int argc, char **argv){
 		rate.sleep();
 		ros::spinOnce();
 		mapper::BaseCommand cmd=getCommand();
-		cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
+		//cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
 		commandPub.publish(cmd);
 	}
 }

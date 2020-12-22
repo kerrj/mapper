@@ -82,7 +82,7 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		Solve(options,&problem,&summary);
 		//cout<<"pre: "<<summary.preprocessor_time_in_seconds<<" min: "<<summary.minimizer_time_in_seconds<<" post: "<<summary.postprocessor_time_in_seconds<<" tot: "<<summary.total_time_in_seconds<<endl;
 		//lower cost is better
-		if(summary.final_cost>1.4*lastScanCost){
+		if(summary.final_cost>1.4*lastScanCost && summary.final_cost>50){
 			cout<<"jump detected: ";
 			cout<<lastScanCost<<" -> "<<summary.final_cost<<endl;
 			jumped=true;

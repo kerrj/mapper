@@ -17,6 +17,7 @@ using namespace std;
 shared_ptr<tf2_ros::Buffer> tfBuf=make_shared<tf2_ros::Buffer>();
 LazyGlobalMap gmap(tfBuf);
 ProbMap lastSubmap;
+bool canPlan = false;
 ProbMap submapToAdd;
 string submapName="submap_0";
 bool addSubmap=false;
@@ -28,6 +29,7 @@ void mapCB(const mapper::Submap::ConstPtr &msg){
 		submapToAdd=ProbMap(lastSubmap);
 	}
 	lastSubmap=ProbMap(msg->map);
+	canPlan=true;
 }
 class Node{
 public:
@@ -127,6 +129,7 @@ int main(int argc, char** argv){
 		//Danger, the probmaps we pass into the global map will be modified by global map
 		rate.sleep();
 		ros::spinOnce();
+		if(!canPlan)continue;
 		auto start=tic();
 		if(addSubmap){
 			addSubmap=false;
