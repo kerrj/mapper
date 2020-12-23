@@ -86,7 +86,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 				if(dx==0 && dy==0)continue;
 				double neighx=next->getX()+dx*ProbMap::CELL_SIZE;
 				double neighy=next->getY()+dy*ProbMap::CELL_SIZE;
-				if(map.getInflated(neighx,neighy)>230){
+				if(map.getInflated(neighx,neighy)>200){
 					//obstacle
 					continue;
 				}
@@ -105,7 +105,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 			}
 		}
 	}
-	cout<<xd<<" nodes expanded"<<endl;
+	//cout<<xd<<" nodes expanded"<<endl;
 	if(goal==nullptr)return false;
 	for(shared_ptr<Node> tmp=goal;tmp!=nullptr;tmp=tmp->parent){
 		geometry_msgs::Point p;
@@ -123,7 +123,7 @@ int main(int argc, char** argv){
 	ros::Publisher pub=n.advertise<mapper::Path>("/path",1);
 	ros::Publisher pub2=n.advertise<mapper::ProbMap>("/inflated_map",1);
 	tf2_ros::TransformListener listener(*tfBuf);
-	ros::Rate rate(.5);
+	ros::Rate rate(1);
 	ROS_INFO("Starting path planning node");
 	while(ros::ok()){
 		//Danger, the probmaps we pass into the global map will be modified by global map
@@ -149,7 +149,7 @@ int main(int argc, char** argv){
 		int starty=round(robPose.transform.translation.y/ProbMap::CELL_SIZE);
 		bool found=findPath(gmap,path,startx,starty);
 		if(found){
-			cout<<"Path len: "<<path.size()<<endl;;
+			//cout<<"Path len: "<<path.size()<<endl;;
 			mapper::Path pathmsg;
 			pathmsg.waypoints=path;
 			pathmsg.header.stamp=ros::Time::now();
@@ -169,7 +169,11 @@ int main(int argc, char** argv){
 			*/
 			//end test stuff
 		}else{
-			cout<<"No path found"<<endl;;
+			cout<<"No path found"<<endl;
+			mapper::Path pathmsg;
+			pathmsg.header.stamp=ros::Time::now();
+			pathmsg.header.frame_id="submap_0";
+			pub.publish(pathmsg);
 		}
 		toc("Total planning loop time",start);
 	}

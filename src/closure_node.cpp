@@ -114,5 +114,11 @@ int main(int argc, char** argv){
 			ROS_INFO("done");
 		}
 	}
+	std::cout<<"xd\n";
+	ROS_INFO("Publishing global map...");
+	ProbMap m=gmap.getMap();
+	mapper::ProbMap mapMsg=m.toRosMsg();
+	mapPub.publish(mapMsg);
+	ROS_INFO("done");
 	return 0;
 }

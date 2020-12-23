@@ -4,7 +4,7 @@ import imageio
 submap=False
 bag=rosbag.Bag('test.bag')
 size=0
-msglist=list(bag.read_messages(topics=['/inflated_map']))
+msglist=list(bag.read_messages(topics=['/map']))
 if submap:
     size=max([max(msglist[i][1].map.numX,msglist[i][1].map.numY) for i in range(len(msglist))])
 else:
