@@ -4,13 +4,20 @@
 using namespace std;
 ProbMap::ProbMap(){
 	int num_cells=DFLT_SIZE/CELL_SIZE;
-	grid=make_shared<vector<vector<prob_t> > >(num_cells,vector<prob_t>(num_cells,0));
+	grid=make_shared<vector<vector<prob_t> > >(num_cells,vector<prob_t>(num_cells,0));//0 means unobserved
 	map_x=map_y=(num_cells/2)*CELL_SIZE;
 	sumX=sumY=0;
 	numScans=0;
 }
-ProbMap::ProbMap(const ProbMap& old){
-	grid=old.grid;
+ProbMap::ProbMap(const ProbMap& old, bool deepcopy){
+	if(deepcopy){
+		grid=make_shared<vector<vector<prob_t> > >();
+		for(int r=0;r<old.numX();r++){
+			grid->emplace_back((*old.grid)[r].begin(),(*old.grid)[r].end());
+		}
+	}else{
+		grid=old.grid;
+	}
 	map_x=old.map_x;
 	map_y=old.map_y;
 	sumX=old.sumX;
@@ -29,6 +36,14 @@ ProbMap::ProbMap(mapper::ProbMap msg){
 		auto it=msg.data.begin()+msg.numY*i;
 		grid->emplace_back(it,it+msg.numY+1);
 	}
+}
+ProbMap::ProbMap(int numX, int numY){
+	grid =  make_shared<vector<vector<prob_t> > >(numX,vector<prob_t>(numY,0));
+	map_x = (numX/2)*CELL_SIZE;
+	map_y = (numY/2)*CELL_SIZE;
+	sumX=sumY=0;
+	numScans=0;
+
 }
 void ProbMap::incScans(double rx,double ry){
 	numScans++;

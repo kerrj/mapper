@@ -22,12 +22,12 @@ using namespace std;
 const int RATE=5;//hz
 const double SIM_TIME=3;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
-const double LIN_ACC=.4;//units of m/s^2
-const double ANG_ACC=3;//units of rad/s^2
-const double MAX_LIN_VEL=.3;
+const double LIN_ACC=1;//units of m/s^2
+const double ANG_ACC=6;//units of rad/s^2
+const double MAX_LIN_VEL=.25;
 const double MAX_ANG_VEL=3;
-const int LIN_SAMPLES=3;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
-const int ANG_SAMPLES=20;//same
+const int LIN_SAMPLES=4;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
+const int ANG_SAMPLES=15;//same
 const double COL_RAD=.23/2.;
 const double GOAL_TOL=.15;
 
@@ -109,9 +109,38 @@ bool collidesWithScan(double x,double y,double col_rad){
 	}
 	return false;
 }
+double closestPoint(double x,double y,double col_rad){
+	//convert to polar
+	double r=hypot(x,y);
+	//bin search in scan to find nearest in distance
+	auto closInd=lower_bound(lastScan.begin(),lastScan.end(),make_pair(r,0.));
+	double dist=std::numeric_limits<double>::max();
+	//consider a range of points around that distance corresponding to a disc shape of candidates
+	for(auto tmp=closInd;tmp>=lastScan.begin() && tmp<lastScan.end();tmp++){
+		//search outwards from start
+		if(tmp->first>r+col_rad)break;
+		double px=cos(tmp->second)*tmp->first;
+		double py=sin(tmp->second)*tmp->first;
+		double d=hypot(px-x,py-y);
+		if(d<col_rad && d<dist){
+			dist=d;
+		}
+	}
+	for(auto tmp=closInd;tmp>=lastScan.begin() && tmp<lastScan.end();tmp--){
+		//search inwards from start
+		if(tmp->first<r-col_rad)break;
+		double px=cos(tmp->second)*tmp->first;
+		double py=sin(tmp->second)*tmp->first;
+		double d=hypot(px-x,py-y);
+		if(d<col_rad && d<dist){
+			dist=d;
+		}
+	}
+	return dist;
+}
+
 double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
-	static const std::vector<double> penalty_rads={.30,.4};
-	static const std::vector<double> penalty_costs={.5,.25};
+	const double obsSearchRad = .5;
 	//collisions have a score of infinity
 	double x,y,obs_penalty=0;
 	for(double t=0;t<SIM_TIME;t+=SIM_RES){
@@ -122,13 +151,10 @@ double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
 			x=(v/w)*sin(w*t);
 			y=(v/w)-(v/w)*cos(w*t);
 		}
-		if(collidesWithScan(x,y,COL_RAD))return numeric_limits<double>::max();
-		for(int i=0;i<penalty_rads.size();i++){
-			if(collidesWithScan(x,y,penalty_rads[i])){
-				obs_penalty=std::max(obs_penalty,penalty_costs[i]);
-				break;
-			}
-		}
+		double closestDist=closestPoint(x,y,obsSearchRad);
+		if(closestDist==std::numeric_limits<double>::max())continue;
+		if(closestDist<COL_RAD)return std::numeric_limits<double>::max();
+		obs_penalty=std::max(obs_penalty,obsSearchRad-closestDist);
 	}
 	double pathX,pathY;
 	closestPathPoint(x,y,&pathX,&pathY,robPath);
@@ -155,7 +181,7 @@ mapper::BaseCommand getCommand(){
 		ROS_WARN("Couldn't transform to submap 0 in pathCB");
 		return cmd;
 	}
-	cout<<"curV: "<<curV<<" curW: "<<curW<<endl;
+	//cout<<"curV: "<<curV<<" curW: "<<curW<<endl;
 	vector<Eigen::Vector2d> robPath;
 	robPath.reserve(lastPath.size());
 	geometry_msgs::TransformStamped robTrans=tfBuf.lookupTransform("wheel_base","submap_0",ros::Time(0));
@@ -218,7 +244,7 @@ int main(int argc, char **argv){
 		auto start=tic();
 		mapper::BaseCommand cmd=getCommand();
 		toc("dwa planning",start);
-		cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
+		//cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
 		commandPub.publish(cmd);
 	}
 }

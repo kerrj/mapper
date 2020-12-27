@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "ros/callback_queue.h"
+#include <signal.h>
 #include "ros/advertise_service_options.h"
 #include "GlobalMap.h"
 #include "ProbMap.h"
@@ -114,11 +115,5 @@ int main(int argc, char** argv){
 			ROS_INFO("done");
 		}
 	}
-	std::cout<<"xd\n";
-	ROS_INFO("Publishing global map...");
-	ProbMap m=gmap.getMap();
-	mapper::ProbMap mapMsg=m.toRosMsg();
-	mapPub.publish(mapMsg);
-	ROS_INFO("done");
 	return 0;
 }

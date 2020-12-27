@@ -86,7 +86,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 				if(dx==0 && dy==0)continue;
 				double neighx=next->getX()+dx*ProbMap::CELL_SIZE;
 				double neighy=next->getY()+dy*ProbMap::CELL_SIZE;
-				if(map.getInflated(neighx,neighy)>200){
+				if(map.getInflated(neighx,neighy)>LazyGlobalMap::OBSTACLE_PROB){
 					//obstacle
 					continue;
 				}
@@ -156,7 +156,7 @@ int main(int argc, char** argv){
 			pathmsg.header.frame_id="submap_0";
 			pub.publish(pathmsg);
 			//below is test stuff for showing the path
-			/*ProbMap xd=gmap.getProbMap();
+			ProbMap xd=gmap.getProbMap();
 			for(auto e:path){
 				double gx,gy;
 				xd.map2Grid(e.x,e.y,&gx,&gy);
@@ -166,7 +166,7 @@ int main(int argc, char** argv){
 			}
 			mapper::ProbMap msg=xd.toRosMsg();
 			pub2.publish(msg);
-			*/
+			
 			//end test stuff
 		}else{
 			cout<<"No path found"<<endl;

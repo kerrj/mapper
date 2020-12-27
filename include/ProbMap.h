@@ -13,10 +13,11 @@ typedef uint8_t prob_t;
 class ProbMap{
 public:
 	ProbMap();
-	ProbMap(const ProbMap &old);
+	ProbMap(const ProbMap &old,bool deepcopy=false);
 	ProbMap(mapper::ProbMap msg);
+	ProbMap(int numX,int numY);
+	enum {DATA_DIMENSION=1};//needed for ceres
 	void crop();
-	enum{DATA_DIMENSION=1};
 	void GetValue(int x,int y,double* f)const;
 	//r{x,y,th} is the pose in the map frame, p{x,y} is the point in the robot frame
 	void addObservation(double rx,double ry,double rth,double px,double py);
@@ -43,7 +44,7 @@ public:
 	void setProbT(int x,int y,prob_t p);
 	static constexpr double CELL_SIZE=.04;
 	static constexpr double PROB_MAX=.98;
-	static constexpr double PROB_MIN=.05;
+	static constexpr double PROB_MIN=.02;
 	void incScans(double rx,double ry);
 	void getCOM(double &x,double &y);
 private:

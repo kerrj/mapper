@@ -1,5 +1,6 @@
 #include "LazyGlobalMap.h"
 #include <omp.h>
+#include "util.hpp"
 using namespace std;
 LazyGlobalMap::LazyGlobalMap(shared_ptr<tf2_ros::Buffer> buf){
 	tfBuffer=buf;
@@ -43,6 +44,44 @@ void LazyGlobalMap::getPose(double *x,double *y,double *th, geometry_msgs::Trans
 	*th=yaw;
 }
 ProbMap LazyGlobalMap::inflateMap(ProbMap m){
+	ProbMap inflated(m,true);//true means deepcopy the internal grid
+	const double INFLATE_RAD  = .12;
+	const double BLUR_RAD     = .4;
+	const double INFLATE_RAD2 = std::pow(INFLATE_RAD,2);
+	const double BLUR_RAD2    = std::pow(BLUR_RAD,2);
+	const int inflate_window = std::ceil(BLUR_RAD/ProbMap::CELL_SIZE);
+	#pragma omp parallel for schedule(static) 
+	for(int r=0;r<inflated.numX();r++){
+		for(int c=0;c<inflated.numY();c++){
+			prob_t maxval=0;
+			double mindist=numeric_limits<double>::max();
+			for(int dr = -inflate_window;dr<inflate_window+1;dr++){
+				for(int dc = -inflate_window;dc<inflate_window+1;dc++){
+					double d2 = std::pow(dr*ProbMap::CELL_SIZE,2)
+						   + std::pow(dc*ProbMap::CELL_SIZE,2);
+					prob_t mapval = m.getProbT(r+dr,c+dc);
+					if(d2<=INFLATE_RAD2){
+						if(mapval>maxval){
+							maxval = mapval;
+						}
+					}else if(d2<=BLUR_RAD2 && mapval>=OBSTACLE_PROB){
+						if(mindist>d2)mindist=d2;
+					}
+				}
+			}
+			if(maxval>=OBSTACLE_PROB || mindist == numeric_limits<double>::max()){
+				inflated.setProbT(r,c,maxval);
+			}else{ 
+				double val = warp(mindist,INFLATE_RAD2,BLUR_RAD2,OBSTACLE_PROB,0);
+				prob_t result = std::floor(val);
+				inflated.setProbT(r,c,std::max(maxval,result));
+			}
+		}
+	}
+	return inflated;
+	
+}
+/*ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 	ProbMap inflated=ProbMap(m);
 	//now need to un-alias the data
 	inflated.crop();//crop copies the data from the old buffer so we're good
@@ -92,6 +131,7 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 	
 	return inflated;
 }
+*/
 prob_t LazyGlobalMap::getInflated(double x,double y){
 	//first check if it's memoized and return
 	memoInflated.resize(x,y);

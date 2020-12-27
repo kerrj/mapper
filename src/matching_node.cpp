@@ -1,6 +1,7 @@
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 #include "ceres/cubic_interpolation.h"
+#include "std_srvs/Trigger.h"
 #include "ceres/rotation.h"
 #include "ProbMap.h"
 #include "ScanMatcher.h"
@@ -33,10 +34,10 @@ ros::Time lastScanTime(0);
 mutex scan_lock;
 void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	static int num=0;
+	static tf2_ros::TransformBroadcaster br;
 	static double sum=0;
 	scan_lock.lock();
 	lastScanTime=ros::Time::now();
-	static tf2_ros::TransformBroadcaster br;
 	auto start = std::chrono::system_clock::now();
 	bool reset=matcher.addScan(scan,&br); 
 	std::chrono::duration<double> elapse = std::chrono::system_clock::now() - start;
@@ -60,7 +61,27 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	scan_lock.unlock();
 	sum+=elapse.count();
 	num++;
-	cout<<"Match time. ite: "<<elapse.count()<<" avg: "<<sum/num<<endl;
+	//cout<<"Match time. ite: "<<elapse.count()<<" avg: "<<sum/num<<endl;
+}
+bool dumpSubmapCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &resp){
+	static tf2_ros::TransformBroadcaster br;
+	dist_travelled=0;
+	mapper::AddSubmap srv;
+	srv.request.transform=buf.lookupTransform(matcher.getFrameId(),"last_scan",ros::Time(0));
+	ProbMap frozenMap=matcher.resetMap();
+	srv.request.map.map=frozenMap.toRosMsg();
+	srv.request.map.header.stamp=ros::Time::now();
+	srv.request.transform.child_frame_id=matcher.getFrameId();
+	if(addMapClient.call(srv)){
+		ROS_INFO("Dumped submap");
+		resp.success=true;
+		resp.message="Dumped current submap";
+	}else{
+		ROS_WARN("Couldn't dump submap");
+		resp.success=false;
+		resp.message="Couldn't dump current submap";
+	}
+	return true;
 }
 void odomCB(const mapper::Odometry::ConstPtr& odom){
 	static tf2_ros::TransformBroadcaster br;
@@ -68,22 +89,20 @@ void odomCB(const mapper::Odometry::ConstPtr& odom){
 	dist_travelled+=abs(odom->x);
 }
 int main(int argc, char** argv){
-	//google::InitGoogleLogging(argv[0]);
 	ros::init(argc,argv,"local_matching");
 	ros::NodeHandle n;
 	addMapClient=n.serviceClient<mapper::AddSubmap>("/add_submap");
 	tf2_ros::TransformListener list(buf);
 	pub=n.advertise<mapper::Submap>("/submap",10);
+	ros::ServiceServer s = n.advertiseService("/dump_submap",dumpSubmapCB);
 	ros::Subscriber sub1=n.subscribe("/rectified_scan",50,scanCB);
 	ros::Subscriber sub2=n.subscribe("/wheel_odom",200,odomCB);
 	ROS_INFO("Starting matching node");
 	ros::AsyncSpinner spinner(1);
 	spinner.start();
 	ros::Rate rate(1);
-	bool shutdown=false;
 	while(ros::ok()){
 		rate.sleep();
-		if(shutdown)continue;
 		scan_lock.lock();
 		if(lastScanTime>ros::Time(0) && ros::Time::now()-lastScanTime>ros::Duration(SCAN_TIMEOUT)){
 			mapper::AddSubmap srv;
@@ -97,8 +116,7 @@ int main(int argc, char** argv){
 			else
 				ROS_WARN("Couldn't dump submap");
 			ROS_WARN("No scan by local matcher in a while, shutting down node");
-			spinner.stop();
-			shutdown=true;
+			ros::shutdown();
 		}
 		scan_lock.unlock();
 	}
