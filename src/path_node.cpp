@@ -156,7 +156,7 @@ int main(int argc, char** argv){
 			pathmsg.header.frame_id="submap_0";
 			pub.publish(pathmsg);
 			//below is test stuff for showing the path
-			ProbMap xd=gmap.getProbMap();
+			/*ProbMap xd=gmap.getProbMap();
 			for(auto e:path){
 				double gx,gy;
 				xd.map2Grid(e.x,e.y,&gx,&gy);
@@ -166,7 +166,7 @@ int main(int argc, char** argv){
 			}
 			mapper::ProbMap msg=xd.toRosMsg();
 			pub2.publish(msg);
-			
+			*/
 			//end test stuff
 		}else{
 			cout<<"No path found"<<endl;

@@ -20,14 +20,14 @@
 #include "util.hpp"
 using namespace std;
 const int RATE=5;//hz
-const double SIM_TIME=3;//seconds
+const double SIM_TIME=2;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
 const double LIN_ACC=1;//units of m/s^2
-const double ANG_ACC=6;//units of rad/s^2
+const double ANG_ACC=10;//units of rad/s^2
 const double MAX_LIN_VEL=.25;
 const double MAX_ANG_VEL=3;
 const int LIN_SAMPLES=4;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
-const int ANG_SAMPLES=15;//same
+const int ANG_SAMPLES=20;//same
 const double COL_RAD=.23/2.;
 const double GOAL_TOL=.15;
 
@@ -75,8 +75,8 @@ void closestPathPoint(double x,double y,double *pathX,double *pathY,vector<Eigen
 	//path point
 	double closestDist=numeric_limits<double>::max();
 	//we start searching a little ways in front of the robot to prevent loop-back behavior of dwa
-	const int SEARCH_WIN=MAX_LIN_VEL*SIM_TIME/ProbMap::CELL_SIZE;
-	const int START_ID = SEARCH_WIN/2;
+	const int SEARCH_WIN=1.5*(MAX_LIN_VEL)*SIM_TIME/ProbMap::CELL_SIZE;
+	const int START_ID = .75*(MAX_LIN_VEL)*SIM_TIME/ProbMap::CELL_SIZE;
 	for(int i=min(pathFinger+START_ID,(int)robPath.size()-1);i<robPath.size();i++){
 		if(i>pathFinger+SEARCH_WIN)break;
 		double dist=hypot(x-robPath[i](0),y-robPath[i](1));
@@ -140,7 +140,7 @@ double closestPoint(double x,double y,double col_rad){
 }
 
 double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
-	const double obsSearchRad = .5;
+	const double obsSearchRad = .4;
 	//collisions have a score of infinity
 	double x,y,obs_penalty=0;
 	for(double t=0;t<SIM_TIME;t+=SIM_RES){
@@ -159,7 +159,8 @@ double evalTraj(double v,double w,vector<Eigen::Vector2d> &robPath){
 	double pathX,pathY;
 	closestPathPoint(x,y,&pathX,&pathY,robPath);
 	double dist=hypot(x-pathX,y-pathY);
-	return 1/(std::pow(v+.5,2))+dist+obs_penalty;
+	//return 1/(std::pow(v+.75,2)) + dist + obs_penalty;
+	return dist+obs_penalty;
 }
 mapper::BaseCommand getCommand(){
 	//does everything lol

@@ -61,7 +61,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	scan_lock.unlock();
 	sum+=elapse.count();
 	num++;
-	//cout<<"Match time. ite: "<<elapse.count()<<" avg: "<<sum/num<<endl;
+	cout<<"Match time. ite: "<<elapse.count()<<" avg: "<<sum/num<<endl;
 }
 bool dumpSubmapCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &resp){
 	static tf2_ros::TransformBroadcaster br;

@@ -50,7 +50,6 @@ ProbMap LazyGlobalMap::inflateMap(ProbMap m){
 	const double INFLATE_RAD2 = std::pow(INFLATE_RAD,2);
 	const double BLUR_RAD2    = std::pow(BLUR_RAD,2);
 	const int inflate_window = std::ceil(BLUR_RAD/ProbMap::CELL_SIZE);
-	#pragma omp parallel for schedule(static) 
 	for(int r=0;r<inflated.numX();r++){
 		for(int c=0;c<inflated.numY();c++){
 			prob_t maxval=0;
