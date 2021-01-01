@@ -96,7 +96,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 					continue;
 				}
 				//arb constant multiplied by  map val
-				double cost=hypot(dx,dy)+map.getInflated(neighx,neighy)*.1;
+				double cost=hypot(dx,dy)+map.getInflated(neighx,neighy)*.1;//getInflated is 0-255
 				shared_ptr<Node> neigh=make_shared<Node>(next->x+dx,next->y+dy,
 						next->gval+cost);
 				neigh->setParent(next);

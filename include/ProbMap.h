@@ -8,6 +8,7 @@
 #include "mapper/Odometry.h"
 #include "RollingMax.h"
 #include "Eigen/Dense"
+#include "nav_msgs/OccupancyGrid.h"
 #include <math.h>
 typedef uint8_t prob_t;
 class ProbMap{
@@ -22,6 +23,7 @@ public:
 	//r{x,y,th} is the pose in the map frame, p{x,y} is the point in the robot frame
 	void addObservation(double rx,double ry,double rth,double px,double py);
 	void addObservations(double rx,double ry,double rth,std::vector<double> &xs, std::vector<double> &ys);
+	void fillNavMsg(nav_msgs::OccupancyGrid &occg)const;
 	mapper::ProbMap toRosMsg()const;
 	template<typename T>
 	void map2Grid(T mx,T my,T* gx,T* gy)const{
@@ -43,8 +45,8 @@ public:
 	void setProb(int x,int y,double p);
 	void setProbT(int x,int y,prob_t p);
 	static constexpr double CELL_SIZE=.04;
-	static constexpr double PROB_MAX=.98;
-	static constexpr double PROB_MIN=.02;
+	static constexpr double PROB_MAX=.97;
+	static constexpr double PROB_MIN=.03;
 	void incScans(double rx,double ry);
 	void getCOM(double &x,double &y);
 private:

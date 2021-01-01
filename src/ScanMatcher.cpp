@@ -108,13 +108,13 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 	string submapId=getFrameId();
 	geometry_msgs::TransformStamped scanTrans=getTrans(scanPose.x,scanPose.y,scanPose.th,submapId,"last_scan");
 	scanTrans.header.stamp=scan->header.stamp;
+	br->sendTransform(scanTrans);
 	//now update the robot pose based on relative position to last scan
 	rPose.x=0;rPose.y=0;rPose.th=0;
 	for(auto odom:odomQ){
 		doRKUpdate(rPose,odom);
 	}
 	geometry_msgs::TransformStamped botTrans=getTrans(rPose.x,rPose.y,rPose.th,"last_scan","wheel_base");
-	br->sendTransform(scanTrans);
 	br->sendTransform(botTrans);
 	return jumped;
 }
@@ -127,6 +127,13 @@ mapper::Submap ScanMatcher::toRosMsg()const{
 	msg.header.frame_id=getFrameId();
 	msg.map=map.toRosMsg();
 	return msg;
+}
+nav_msgs::OccupancyGrid ScanMatcher::toNavMsg()const{
+	nav_msgs::OccupancyGrid occg;
+	occg.header.stamp=ros::Time::now();
+	occg.header.frame_id=getFrameId();
+	map.fillNavMsg(occg);
+	return occg;
 }
 string ScanMatcher::getFrameId()const{
 	return "submap_"+to_string(id);

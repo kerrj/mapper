@@ -128,7 +128,9 @@ CATKIN_DEPENDS geometry_msgs message_runtime sensor_msgs std_msgs std_srvs rospy
 ###########
 ## Build ##
 ###########
-
+if(${RVIZ_PUB})
+	add_compile_definitions(RVIZ_PUB)
+endif()
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(

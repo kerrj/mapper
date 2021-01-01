@@ -23,11 +23,11 @@ const int RATE=5;//hz
 const double SIM_TIME=2;//seconds
 const double SIM_RES=.2;//frequency of samples in the forward simulation
 const double LIN_ACC=1;//units of m/s^2
-const double ANG_ACC=10;//units of rad/s^2
-const double MAX_LIN_VEL=.25;
+const double ANG_ACC=8;//units of f/s^2
+const double MAX_LIN_VEL=.27;
 const double MAX_ANG_VEL=3;
 const int LIN_SAMPLES=4;//samples for HALF of the search space centered at 0. So 2 means 3 samples, 1 at min, 1 at 0, 1 at max;
-const int ANG_SAMPLES=20;//same
+const int ANG_SAMPLES=23;//same convention
 const double COL_RAD=.23/2.;
 const double GOAL_TOL=.15;
 

@@ -4,6 +4,7 @@
 #include "Eigen/Geometry"
 #include "ceres/cubic_interpolation.h"
 #include "ProbMap.h"
+#include <omp.h>
 
 class LaserScanCostEigen{
 public:
@@ -28,9 +29,7 @@ public:
 		T one=T(1.0);
 		for(int i=0;i<transformed.cols();i++){
 			T gx,gy,interpRes;
-			T mx=transformed(0,i);
-			T my=transformed(1,i);
-			map->map2Grid(mx,my,&gx,&gy);
+			map->map2Grid(transformed(0,i),transformed(1,i),&gx,&gy);
         		interp->Evaluate(gx,gy,&interpRes);
         		residual[i]=one-interpRes;
 		}

@@ -9,11 +9,11 @@
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "mapper/RectifiedScan.h"
+#include "nav_msgs/OccupancyGrid.h"
 #include <mutex>
 #include "util.hpp"
-const double MATCH_INTERVAL=2;
 using namespace std;
-mutex reqlock;;
+mutex reqlock;
 shared_ptr<tf2_ros::Buffer> buf=make_shared<tf2_ros::Buffer>();
 GlobalMap gmap(buf);
 ros::Publisher mapPub;
@@ -24,8 +24,6 @@ bool add=false;
 bool submapCB(mapper::AddSubmap::Request &req,mapper::AddSubmap::Response  &res){
 	reqlock.lock();
 	lastReq=req;
-	static tf2_ros::StaticTransformBroadcaster br;
-	br.sendTransform(lastReq.transform);//new submap transform
 	add=true;
 	reqlock.unlock();
 	res.success=true;
@@ -48,6 +46,9 @@ int main(int argc, char** argv){
 	ros::AdvertiseServiceOptions o=ros::AdvertiseServiceOptions::create<mapper::AddSubmap>("/add_submap",submapCB,ros::VoidPtr(),&serviceQueue);
 	ros::ServiceServer ser=n.advertiseService(o);
 	mapPub=n.advertise<mapper::ProbMap>("/map",1);
+#ifdef RVIZ_PUB
+	ros::Publisher occpub=n.advertise<nav_msgs::OccupancyGrid>("/map_occupancy",1);
+#endif
 	ros::Subscriber sub=n.subscribe("/rectified_scan",1,scanCB);
 	tf2_ros::StaticTransformBroadcaster br;
 	tf2_ros::TransformListener list(*buf);
@@ -112,6 +113,13 @@ int main(int argc, char** argv){
 			ProbMap m=gmap.getMap();
 			mapper::ProbMap mapMsg=m.toRosMsg();
 			mapPub.publish(mapMsg);
+#ifdef RVIZ_PUB
+			nav_msgs::OccupancyGrid occg;
+			occg.header.stamp=ros::Time::now();
+			occg.header.frame_id="submap_0";
+			m.fillNavMsg(occg);
+			occpub.publish(occg);
+#endif
 			ROS_INFO("done");
 		}
 	}

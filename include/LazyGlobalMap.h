@@ -26,7 +26,7 @@ public:
 	prob_t getInflated(double x,double y);
 	prob_t getNormal(double x,double y);
 	ProbMap getProbMap();
-	static constexpr prob_t OBSTACLE_PROB = 200;
+	static constexpr prob_t OBSTACLE_PROB = 160;
 private:
 	ProbMap inflateMap(const ProbMap m);
 	std::vector<ProbMap> submaps;

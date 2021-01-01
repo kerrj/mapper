@@ -19,6 +19,7 @@
 #include "mapper/Odometry.h"
 #include "glog/logging.h"
 #include "LaserScanCostEigen.h"
+#include "nav_msgs/OccupancyGrid.h"
 class ScanMatcher{
 public:
 	ScanMatcher();
@@ -27,6 +28,7 @@ public:
 	void addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br);
 	std::string getFrameId()const;
 	mapper::Submap toRosMsg()const;
+	nav_msgs::OccupancyGrid toNavMsg()const;
 	ProbMap &getProbMap();
 	geometry_msgs::TransformStamped getTrans(double x,double y,double th,std::string parent_name,std::string child_name)const;
 	mapper::Odometry scanPose;//holds the delayed position of robot lining up with the scans

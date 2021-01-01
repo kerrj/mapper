@@ -229,6 +229,12 @@ void ProbMap::addObservations(double rx,double ry,double rth,std::vector<double>
 		pad=max(pad,laserGridY-numY()+1);
 	}
 	resize(pad);
+	if(pad>0){
+		//We need to recompute the coords of the robot since they changed
+		map2Grid(rx,ry,&gx,&gy);
+		robotGridX=round(gx);
+		robotGridY=round(gy);
+	}
 	updateProb(robotGridX,robotGridY,P_MISS);//robot in empty space
 	//now in parallel split up the work of adding observations
 	#pragma omp parallel for schedule(static) 
@@ -343,6 +349,22 @@ void ProbMap::updateProb(int x,int y,double update){
 	double prior=getProb(x,y);
 	double post=clamp(oddsinv(odds(prior)*odds(update)),PROB_MIN,PROB_MAX);
 	(*grid)[x][y]=getProbT(post);
+}
+void ProbMap::fillNavMsg(nav_msgs::OccupancyGrid &occg)const{
+	occg.info.resolution=CELL_SIZE;
+	occg.info.width=numX();
+	occg.info.height=numY();
+	occg.info.origin.position.x=-map_x;
+	occg.info.origin.position.y=-map_y;
+	std::vector<int8_t> mapdata(numX()*numY());
+	for(int ix=0;ix<numX();ix++){
+		for(int iy=0;iy<numY();iy++){
+			int8_t val = 100*getProb((*grid)[ix][iy]);
+			size_t ind = ix+iy*numX();
+			mapdata[ind]=val;
+		}
+	}
+	occg.data=mapdata;
 }
 mapper::ProbMap ProbMap::toRosMsg()const{
 	mapper::ProbMap msg;
