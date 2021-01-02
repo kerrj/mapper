@@ -1,7 +1,31 @@
 #include "ScanMatcher.h"
 #include "util.hpp"
+#include "std_msgs/Float64.h"
 using namespace ceres;
 using namespace std;
+#ifdef RVIZ_PUB
+std::vector<sensor_msgs::PointField> pcfields(3);
+void pubScan(string frame_id,ros::Publisher pub,const mapper::RectifiedScan::ConstPtr &scan){
+	sensor_msgs::PointCloud2 pc;
+	pc.header.stamp=scan->header.stamp;
+	pc.header.frame_id=frame_id;
+	pc.height=1;
+	pc.width=scan->xs.size();
+	pc.is_bigendian=true;
+	pc.is_dense=true;
+	pc.point_step=12;
+	pc.row_step=pc.point_step*pc.width;
+	pc.data=std::vector<uint8_t>(pc.row_step);
+	pc.fields=pcfields;
+	float* datastart=(float*)pc.data.data();
+	for(int i=0;i<scan->xs.size();i++){
+		datastart[3*i]=scan->xs[i];
+		datastart[3*i+1]=scan->ys[i];	
+	}
+	pub.publish(pc);
+
+}
+#endif
 void doRKUpdate(mapper::Odometry &pose,const mapper::Odometry::ConstPtr &odom){
 	double RT=pose.th;
 	double opt1=RT+odom->th;
@@ -27,6 +51,20 @@ ScanMatcher::ScanMatcher(){
 	options.linear_solver_type=DENSE_QR;
 	options.use_nonmonotonic_steps=false;
 	options.minimizer_progress_to_stdout=false;
+#ifdef RVIZ_PUB	
+	pcfields[0].name="x";
+	pcfields[0].offset=0;
+	pcfields[0].datatype=sensor_msgs::PointField::FLOAT32;
+	pcfields[0].count=1;
+	pcfields[1].name="y";
+	pcfields[1].offset=4;
+	pcfields[1].datatype=sensor_msgs::PointField::FLOAT32;
+	pcfields[1].count=1;
+	pcfields[2].name="z";
+	pcfields[2].offset=8;
+	pcfields[2].datatype=sensor_msgs::PointField::FLOAT32;
+	pcfields[2].count=1;
+#endif
 }
 ProbMap ScanMatcher::resetMap(){
 	rPose.x=0;
@@ -58,7 +96,8 @@ bool ScanMatcher::goodMeasurement(double x,double y){
 	if(h<.12 || h>MAX_RANGE)return false;
 	return true;
 }
-bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::TransformBroadcaster* br){
+bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::TransformBroadcaster* br,
+		ros::Publisher* pointcloudpub){
 	//integrate the relevant odom messages bringing us up to the scan time
 	while(odomQ.size()>0 && odomQ.front()->header.stamp<scan->header.stamp){
 		doRKUpdate(scanPose,odomQ.front());
@@ -77,21 +116,36 @@ bool ScanMatcher::addScan(const mapper::RectifiedScan::ConstPtr &scan,tf2_ros::T
 		//do the pose optimization and set rx,ry,rth
 		Problem problem;
 		CostFunction *cost_fun=new AutoDiffCostFunction<LaserScanCostEigen,DYNAMIC,3>(new LaserScanCostEigen(&map,&xs,&ys),xs.size());
-		problem.AddResidualBlock(cost_fun,NULL,p);
+		problem.AddResidualBlock(cost_fun,new ceres::HuberLoss(.7),p);
 		Solver::Summary summary;
 		Solve(options,&problem,&summary);
 		//cout<<"pre: "<<summary.preprocessor_time_in_seconds<<" min: "<<summary.minimizer_time_in_seconds<<" post: "<<summary.postprocessor_time_in_seconds<<" tot: "<<summary.total_time_in_seconds<<endl;
 		//lower cost is better
-		if(summary.final_cost>1.4*lastScanCost && summary.final_cost>50){
+		if(summary.final_cost>1.5*lastScanCost){
 			cout<<"jump detected: ";
 			cout<<lastScanCost<<" -> "<<summary.final_cost<<endl;
 			jumped=true;
 		}
 		lastScanCost=summary.final_cost;
+#ifdef RVIZ_PUB
+		static ros::NodeHandle n;
+		static ros::Publisher costpub=n.advertise<std_msgs::Float64>("/match_cost",1);
+		std_msgs::Float64 f;
+		f.data=summary.final_cost;
+		costpub.publish(f);
+#endif
 		//std::cout<<summary.BriefReport()<<endl;
 	}
 	fresh=false;
 	scanPose.x=p[0];scanPose.y=p[1];scanPose.th=p[2];
+#ifdef RVIZ_PUB
+	if(pointcloudpub!=nullptr){
+		geometry_msgs::TransformStamped b4Trans=getTrans(scanPose.x,scanPose.y,scanPose.th,getFrameId(),"scan_prematch");
+		b4Trans.header.stamp=scan->header.stamp;
+		br->sendTransform(b4Trans);
+		pubScan("scan_prematch",*pointcloudpub,scan);
+	}
+#endif
 	//add all the observations using the fine tuned pose
 	if(!jumped){
 		map.incScans(p[0],p[1]);

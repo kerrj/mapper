@@ -20,11 +20,12 @@
 #include "glog/logging.h"
 #include "LaserScanCostEigen.h"
 #include "nav_msgs/OccupancyGrid.h"
+#include "sensor_msgs/PointCloud2.h"
 class ScanMatcher{
 public:
 	ScanMatcher();
 	ProbMap resetMap();
-	bool addScan(const mapper::RectifiedScan::ConstPtr& scan,tf2_ros::TransformBroadcaster* br);
+	bool addScan(const mapper::RectifiedScan::ConstPtr& scan,tf2_ros::TransformBroadcaster* br,ros::Publisher* pcpub=nullptr);
 	void addOdom(const mapper::Odometry::ConstPtr& odom,tf2_ros::TransformBroadcaster* br);
 	std::string getFrameId()const;
 	mapper::Submap toRosMsg()const;

@@ -11,6 +11,8 @@
 #include <queue>
 #include "geometry_msgs/Point.h"
 #include <unordered_set>
+#include "visualization_msgs/Marker.h"
+#include "nav_msgs/OccupancyGrid.h"
 #include <algorithm>
 #include "util.hpp"
 using namespace std;
@@ -68,7 +70,7 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 	priority_queue<shared_ptr<Node>,vector<shared_ptr<Node> >, NodeCmp> pq;
 	pq.push(make_shared<Node>(startx,starty,0));
 	unordered_set<pair<int,int>, PairHash> visited;
-	visited.reserve(10000);
+	visited.reserve(1000);
 	shared_ptr<Node> goal=nullptr;
 	int xd=0;
 	while(!pq.empty()){
@@ -105,7 +107,6 @@ bool findPath(LazyGlobalMap &map,vector<geometry_msgs::Point> &path,int startx,i
 			}
 		}
 	}
-	//cout<<xd<<" nodes expanded"<<endl;
 	if(goal==nullptr)return false;
 	for(shared_ptr<Node> tmp=goal;tmp!=nullptr;tmp=tmp->parent){
 		geometry_msgs::Point p;
@@ -121,9 +122,12 @@ int main(int argc, char** argv){
 	ros::NodeHandle n;
 	ros::Subscriber sub=n.subscribe("/submap",1,mapCB);
 	ros::Publisher pub=n.advertise<mapper::Path>("/path",1);
-	ros::Publisher pub2=n.advertise<mapper::ProbMap>("/inflated_map",1);
+#ifdef RVIZ_PUB
+	ros::Publisher pub2=n.advertise<nav_msgs::OccupancyGrid>("/inflated_map",1);
+	ros::Publisher rvizpub=n.advertise<visualization_msgs::Marker>("/path_marker",1);
+#endif
 	tf2_ros::TransformListener listener(*tfBuf);
-	ros::Rate rate(1);
+	ros::Rate rate(.5);
 	ROS_INFO("Starting path planning node");
 	while(ros::ok()){
 		//Danger, the probmaps we pass into the global map will be modified by global map
@@ -155,25 +159,50 @@ int main(int argc, char** argv){
 			pathmsg.header.stamp=ros::Time::now();
 			pathmsg.header.frame_id="submap_0";
 			pub.publish(pathmsg);
-			//below is test stuff for showing the path
-			/*ProbMap xd=gmap.getProbMap();
-			for(auto e:path){
-				double gx,gy;
-				xd.map2Grid(e.x,e.y,&gx,&gy);
-				int xpos=round(gx);
-				int ypos=round(gy);
-				xd.setProbT(xpos,ypos,255);
-			}
-			mapper::ProbMap msg=xd.toRosMsg();
+#ifdef RVIZ_PUB
+			/*
+			//code for visualizing the inflated map (very slow)
+			ProbMap xd=gmap.getProbMap();
+			nav_msgs::OccupancyGrid msg;
+			msg.header.stamp=ros::Time::now();
+			msg.header.frame_id="submap_0";
+			xd.fillNavMsg(msg);
 			pub2.publish(msg);
 			*/
-			//end test stuff
+			visualization_msgs::Marker pathmark;
+			pathmark.header.stamp=ros::Time::now();
+			pathmark.ns="path";
+			pathmark.lifetime=ros::Duration(0);
+			pathmark.scale.x=.05;
+			pathmark.id=0;
+			pathmark.color.r=0;pathmark.color.b=0;pathmark.color.g=1;
+			pathmark.header.frame_id="submap_0";
+			pathmark.type=visualization_msgs::Marker::LINE_STRIP;
+			pathmark.frame_locked=true;
+			pathmark.points=path;
+			pathmark.action=visualization_msgs::Marker::ADD;
+			rvizpub.publish(pathmark);
+#endif
 		}else{
 			cout<<"No path found"<<endl;
 			mapper::Path pathmsg;
 			pathmsg.header.stamp=ros::Time::now();
 			pathmsg.header.frame_id="submap_0";
 			pub.publish(pathmsg);
+#ifdef RVIZ_PUB
+			visualization_msgs::Marker pathmark;
+			pathmark.header.stamp=ros::Time::now();
+			pathmark.ns="path";
+			pathmark.scale.x=.05;
+			pathmark.lifetime=ros::Duration(0);
+			pathmark.id=0;
+			pathmark.color.r=0;pathmark.color.b=0;pathmark.color.g=1;
+			pathmark.header.frame_id="submap_0";
+			pathmark.type=visualization_msgs::Marker::LINE_STRIP;
+			pathmark.action=visualization_msgs::Marker::ADD;
+			pathmark.frame_locked=true;
+			rvizpub.publish(pathmark);
+#endif
 		}
 		toc("Total planning loop time",start);
 	}

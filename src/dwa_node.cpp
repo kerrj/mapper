@@ -242,9 +242,7 @@ int main(int argc, char **argv){
 	while(ros::ok()){
 		rate.sleep();
 		ros::spinOnce();
-		auto start=tic();
 		mapper::BaseCommand cmd=getCommand();
-		toc("dwa planning",start);
 		//cout<<"Given command (v,w): "<<cmd.velocity<<","<<cmd.omega<<endl;
 		commandPub.publish(cmd);
 	}

@@ -7,12 +7,8 @@
 #include "Eigen/Dense"
 #include "Eigen/Geometry"
 #include "util.hpp"
-#include "sensor_msgs/PointCloud2.h"
 #include <vector>
 #define PI 3.14159265358979323846
-#ifdef RVIZ_PUB
-std::vector<sensor_msgs::PointField> fields(3);
-#endif
 using namespace std;
 using namespace Eigen;
 struct Pose{
@@ -31,9 +27,8 @@ int mod(int x,int n){
 }
 class Rectifier{
 public:
-	Rectifier(ros::Publisher pub,ros::Publisher pointcloudpub){
+	Rectifier(ros::Publisher pub){
 		this->pub=pub;
-		this->pointcloudpub=pointcloudpub;
 		poseFinger=0;
 	}
 	void scanCB(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -51,24 +46,6 @@ public:
 		rectscan.xs=xs;
 		rectscan.ys=ys;
 		pub.publish(rectscan);
-#ifdef RVIZ_PUB
-		sensor_msgs::PointCloud2 pc;
-		pc.header=rectscan.header;
-		pc.height=1;
-		pc.width=xs.size();
-		pc.is_bigendian=true;
-		pc.is_dense=true;
-		pc.point_step=12;
-		pc.row_step=pc.point_step*pc.width;
-		pc.data=std::vector<uint8_t>(pc.row_step);
-		pc.fields=fields;
-		float* datastart=(float*)pc.data.data();
-		for(int i=0;i<xs.size();i++){
-			datastart[3*i]=xs[i];
-			datastart[3*i+1]=ys[i];	
-		}
-		pointcloudpub.publish(pc);
-#endif
 		odomQ.clear();
 		poseFinger=0;
 	}
@@ -136,30 +113,17 @@ private:
 		float th=poses[index].th*(1-r)+poses[index+1].th*r;
 		return Pose(x,y,th);
 	}
-	ros::Publisher pub,pointcloudpub;
+	ros::Publisher pub;
 	vector<mapper::Odometry> odomQ;
 	int poseFinger=0;
 	sensor_msgs::LaserScan::ConstPtr lastScan=nullptr;
 };
 
 int main(int argc, char **argv){
-	fields[0].name="x";
-	fields[0].offset=0;
-	fields[0].datatype=sensor_msgs::PointField::FLOAT32;
-	fields[0].count=1;
-	fields[1].name="y";
-	fields[1].offset=4;
-	fields[1].datatype=sensor_msgs::PointField::FLOAT32;
-	fields[1].count=1;
-	fields[2].name="z";
-	fields[2].offset=8;
-	fields[2].datatype=sensor_msgs::PointField::FLOAT32;
-	fields[2].count=1;
 	ros::init(argc,argv,"rectify_scan");
         ros::NodeHandle n;
 	ros::Publisher pub=n.advertise<mapper::RectifiedScan>("/rectified_scan",10);
-	ros::Publisher pointcloudpub=n.advertise<sensor_msgs::PointCloud2>("/scan_pointcloud",1);
-	Rectifier rect(pub,pointcloudpub);
+	Rectifier rect(pub);
 	ros::Subscriber s1 = n.subscribe("/scan",10,&Rectifier::scanCB,&rect);
 	ros::Subscriber s2 = n.subscribe("/wheel_odom",50,&Rectifier::odomCB,&rect);
 	ROS_INFO("Starting rectify node");

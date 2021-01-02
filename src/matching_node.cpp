@@ -5,6 +5,7 @@
 #include "ceres/rotation.h"
 #include "ProbMap.h"
 #include "ScanMatcher.h"
+#include "sensor_msgs/PointCloud2.h"
 #include "ros/ros.h"
 #include "Eigen/Dense"
 #include "mapper/Odometry.h"
@@ -34,6 +35,7 @@ ros::Publisher pub;
 #ifdef RVIZ_PUB
 ros::Publisher occ_grid_pub;
 #endif
+ros::Publisher pcpub;
 double dist_travelled=0;
 ros::Time lastScanTime(0);
 mutex scan_lock;
@@ -45,7 +47,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 	scan_lock.lock();
 	lastScanTime=ros::Time::now();
 	auto start = std::chrono::system_clock::now();
-	bool reset=matcher.addScan(scan,&br); 
+	bool reset=matcher.addScan(scan,&br,&pcpub); 
 	std::chrono::duration<double> elapse = std::chrono::system_clock::now() - start;
 	mapper::Submap sm=matcher.toRosMsg();
 	pub.publish(sm);
@@ -63,6 +65,7 @@ void scanCB(const mapper::RectifiedScan::ConstPtr &scan){
 		geometry_msgs::TransformStamped t=buf.lookupTransform("submap_0","last_scan",scan->header.stamp,ros::Duration(.01));
 		srv.request.map.header.frame_id=matcher.getFrameId();
 		ProbMap frozenMap=matcher.resetMap();
+
 		matcher.addScan(scan,&br);//this changes the parent of last_scan to the new map
 		srv.request.map.map=frozenMap.toRosMsg();
 		srv.request.map.header.stamp=ros::Time::now();
@@ -118,6 +121,7 @@ int main(int argc, char** argv){
 	pub=n.advertise<mapper::Submap>("/submap",10);
 #ifdef RVIZ_PUB
 	occ_grid_pub=n.advertise<nav_msgs::OccupancyGrid>("/submap_occupancy",1);
+	pcpub=n.advertise<sensor_msgs::PointCloud2>("/last_scan",1);
 #endif
 	ros::ServiceServer s = n.advertiseService("/dump_submap",dumpSubmapCB);
 	ros::Subscriber sub1=n.subscribe("/rectified_scan",50,scanCB);
