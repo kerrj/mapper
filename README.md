@@ -1,5 +1,5 @@
 # Mapping Robot
-This is a personal summer project primarily intending to teach me more about SLAM. It is largely based on the [Google Cartographer](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/45466.pdf) system with some modifications to make it less computationally expensive. Mapping can be teleoperated or autonomous with Dijkstra's algorithm computing a path to the nearest unseen map location, and a local planner following said path using the dynamic window approach.
+This is a personal to learn about SLAM (and have fun!). It is largely based on the [Google Cartographer](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/45466.pdf) system with some modifications to make it less computationally expensive. Mapping can be teleoperated or autonomous with Dijkstra's algorithm computing a path to the nearest unseen map location, and a local planner following said path using the dynamic window approach.
 Here's a picture of my robot:
 
 <img src="media/robot_pic.jpg" alt="robot_pic" width="300"/>
@@ -11,7 +11,7 @@ Screenshots of maps generated are shown below, with a resolution of 3cm.
 
 <img src="media/bigmap.png" alt="map" width="200"/> <img src="media/medmap.png" alt="map" width="200"/> <img src="media/smallmap.png" alt="map" width="200"/>
 
-The first two maps are approximately the same size, while the third is much smaller. All are taken inside houses with teleoperation.
+The first two maps are approximately the same size, while the third is much smaller. All are taken inside houses with teleoperation, generated in real-time.
 
 I use webviz to visualize operation during runtime, below is a screenshot showing this
 <img src="media/webvizscreen.png" alt="drawing" width="500"/>
