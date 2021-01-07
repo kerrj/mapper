@@ -1,10 +1,10 @@
 # Mapping Robot
 This is a personal to learn about SLAM (and have fun!). It is largely based on the [Google Cartographer](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/45466.pdf) system with some modifications to make it less computationally expensive. Mapping can be teleoperated or autonomous with Dijkstra's algorithm computing a path to the nearest unseen map location, and a local planner following said path using the dynamic window approach.
-Here's a picture of my robot:
+Here's a picture and CAD model of my robot:
 
-<img src="media/robot_pic.jpg" alt="robot_pic" width="300"/>
-It uses an RPLidar A1 along with basic wheel encoders, powered by a Raspberry Pi 4.
+<img src="media/robot_pic.jpg" alt="robot_pic" width="200"/><img src="media/robot_cad.png" alt="robot_pic" width="200"/>
 
+It uses an RPLidar A1 along with basic wheel encoders, powered by a Raspberry Pi 4. I designed and 3D printed the chassis during COVID-19 summer.
 
 ## Demos
 Screenshots of maps generated are shown below, with a resolution of 3cm.
