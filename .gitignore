@@ -1,4 +1,5 @@
 *.bag
+*.DS_Store
 *.npy
 *.pyc
 *.swp
