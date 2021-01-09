@@ -30,6 +30,9 @@ const int LIN_SAMPLES=4;//samples for HALF of the search space centered at 0. So
 const int ANG_SAMPLES=23;//same convention
 const double COL_RAD=.23/2.;
 const double GOAL_TOL=.15;
+//the number of indexes to skip when getting the lookahead point along path
+const int LOOKAHEAD_ID = .75*(MAX_LIN_VEL)*SIM_TIME/ProbMap::CELL_SIZE;
+const double PIVOT_THRESH = 1.2;//if lookahead point is more than this angle away from current heading, turn in place
 
 tf2_ros::Buffer tfBuf;
 vector<pair<double,double> > lastScan;
@@ -76,8 +79,7 @@ void closestPathPoint(double x,double y,double *pathX,double *pathY,vector<Eigen
 	double closestDist=numeric_limits<double>::max();
 	//we start searching a little ways in front of the robot to prevent loop-back behavior of dwa
 	const int SEARCH_WIN=1.5*(MAX_LIN_VEL)*SIM_TIME/ProbMap::CELL_SIZE;
-	const int START_ID = .75*(MAX_LIN_VEL)*SIM_TIME/ProbMap::CELL_SIZE;
-	for(int i=min(pathFinger+START_ID,(int)robPath.size()-1);i<robPath.size();i++){
+	for(int i=min(pathFinger+LOOKAHEAD_ID,(int)robPath.size()-1);i<robPath.size();i++){
 		if(i>pathFinger+SEARCH_WIN)break;
 		double dist=hypot(x-robPath[i](0),y-robPath[i](1));
 		if(dist<closestDist){
@@ -182,7 +184,6 @@ mapper::BaseCommand getCommand(){
 		ROS_WARN("Couldn't transform to submap 0 in pathCB");
 		return cmd;
 	}
-	//cout<<"curV: "<<curV<<" curW: "<<curW<<endl;
 	vector<Eigen::Vector2d> robPath;
 	robPath.reserve(lastPath.size());
 	geometry_msgs::TransformStamped robTrans=tfBuf.lookupTransform("wheel_base","submap_0",ros::Time(0));
@@ -206,6 +207,14 @@ mapper::BaseCommand getCommand(){
 		}
 	}
 	if(hypot(robPath[robPath.size()-1](0),robPath[robPath.size()-1](1))<GOAL_TOL)return cmd;
+	//if the path aims behind the robot, we should turn in place
+	auto lookahead = robPath[std::min(pathFinger + LOOKAHEAD_ID,(int)robPath.size()-1)];
+	double heading = std::atan2(lookahead(1),lookahead(0));
+	if(std::abs(heading)>PIVOT_THRESH){
+		cmd.omega = std::copysign(1,heading)*MAX_ANG_VEL;
+		return cmd;
+	}
+	//otherwise resume normal DWA
 	//generate space of trajs
 	const double LIN_DELTA=(1./RATE)*LIN_ACC;
 	const double ANG_DELTA=(1./RATE)*ANG_ACC;

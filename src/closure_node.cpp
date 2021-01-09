@@ -83,7 +83,7 @@ int main(int argc, char** argv){
 				xs.push_back(lastScan->xs[i]);
 				ys.push_back(lastScan->ys[i]);
 			}
-			if(xs.size()<500){
+			if(xs.size()<300){
 				ROS_INFO("Not enough points to match, skipping loop closure");
 			}else{
 				Eigen::MatrixXf points(2,lastScan->xs.size());
